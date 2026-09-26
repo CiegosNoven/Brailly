@@ -35,7 +35,14 @@ import {
 import { toBraille } from "./braille";
 import { frameDocument } from "./frame";
 import BrailleDevice from "./BrailleDevice";
+import ReadingQueue from "./ReadingQueue";
 import BrailleField from "./BrailleField";
+import {
+  snapshotSignature,
+  sourceChanges,
+  onlyCountdownTicks,
+  blockSignature,
+} from "../shared/live";
 const extension = typeof chrome !== "undefined" && !!chrome.runtime?.id;
 const API = extension ? "https://brailly-jev.vercel.app" : "";
 const categoryLabel = {
@@ -46,15 +53,20 @@ const categoryLabel = {
   EXTRA: "Extra",
 };
 export default function App() {
+  const [activeTab, setActiveTab] = useState<"analyze" | "read">(
+    extension ? "read" : "analyze",
+  );
   const [page, setPage] = useState<PageSnapshot | null>(null);
   const [url, setUrl] = useState("");
   const [task, setTask] = useState(
-    "Find the opening hours, ticket price, and accessible entrance.",
+    extension
+      ? "Read the main content and useful actions on this page. Put unrelated promotions and site navigation later."
+      : "Find the opening hours, ticket price, and accessible entrance.",
   );
   const [result, setResult] = useState<Classification | null>(null);
   const [busy, setBusy] = useState<"load" | "rank" | null>(null);
   const [error, setError] = useState("");
-  const [status, setStatus] = useState("Choose a web page to get started.");
+  const [status, setStatus] = useState(extension ? "Opening the current browser page…" : "Choose a web page to get started.");
   const [selected, setSelected] = useState("");
   const [offset, setOffset] = useState(0);
   const [cellOffset, setCellOffset] = useState(0);
@@ -103,18 +115,55 @@ export default function App() {
   const abort = useRef<AbortController | null>(null);
   const pageRef = useRef(page);
   pageRef.current = page;
+  const baseline = useRef<PageSnapshot | null>(null);
+  const lastObserved = useRef<PageSnapshot | null>(null);
+  const refreshingPreview = useRef<{
+    token: string;
+    page: PageSnapshot;
+  } | null>(null);
+  const sourceSession = useRef(0);
+  const loadGeneration = useRef(0);
+  const loadAbort = useRef<AbortController | null>(null);
+  const loadingSource = useRef(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const pendingUpdate = useRef<PageSnapshot | null>(null);
+  const ranking = useRef(false);
+  const nextRankAt = useRef(0);
+  const updateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const processPending = useRef<() => void>(() => {});
+  const receiveSnapshot = useRef<
+    (snapshot: PageSnapshot, newDocument?: boolean) => void
+  >(() => {});
+  const extensionSource = useRef<{ revision: number; tabId?: number }>({
+    revision: -1,
+  });
+  const capturedTabId = useRef<number | undefined>(undefined);
+  const [updateSummary, setUpdateSummary] = useState("");
   useEffect(() => {
     return () => {
+      initialized.current = false;
       abort.current?.abort();
+      loadAbort.current?.abort();
+      if (updateTimer.current) clearTimeout(updateTimer.current);
       speechSynthesis?.cancel();
     };
   }, []);
   function acceptPage(p: PageSnapshot) {
+    sourceSession.current++;
+    refreshingPreview.current = null;
+    setRefreshing(false);
     epoch.current++;
     abort.current?.abort();
+    pendingUpdate.current = null;
+    ranking.current = false;
+    baseline.current = p;
+    lastObserved.current = p;
+    nextRankAt.current = 0;
+    if (updateTimer.current) clearTimeout(updateTimer.current);
+    pageRef.current = p;
+    setUrl(p.url);
+    setUpdateSummary("");
     setPage(p);
-    // The extension's URL field is read-only; show the captured page so Read page is enabled.
-    if (extension) setUrl(p.url);
     setResult(null);
     setFrameReady(false);
     setSelected(p.blocks[0]?.id || "");
@@ -132,32 +181,97 @@ export default function App() {
   }
   useEffect(() => {
     if (!extension) return;
-    chrome.storage.session
-      .get(["snapshot", "captureError", "pageChanged"])
-      .then((v) => {
-        if (v.snapshot) acceptPage(v.snapshot as PageSnapshot);
-        if (v.captureError) setError(String(v.captureError));
-        setChanged(!!v.pageChanged);
+    let active = true;
+    let port: chrome.runtime.Port | undefined;
+    let reconnect: ReturnType<typeof setTimeout> | undefined;
+    const connect = () => {
+      if (!active) return;
+      port = chrome.runtime.connect({ name: "brailly-reader" });
+      port.onDisconnect.addListener(() => {
+        if (active) reconnect = setTimeout(connect, 500);
       });
+    };
+    connect();
+    const acceptStored = (value: Record<string, unknown>) => {
+      if (!active) return;
+      const revision =
+        typeof value.sourceRevision === "number"
+          ? value.sourceRevision
+          : extensionSource.current.revision;
+      if (revision < extensionSource.current.revision) return;
+      const tabId =
+        typeof value.sourceTabId === "number"
+          ? value.sourceTabId
+          : extensionSource.current.tabId;
+      extensionSource.current = { revision, tabId };
+      if (value.snapshot === null && ["capturing", "loading", "unavailable", "idle"].includes(String(value.captureStatus))) {
+        epoch.current++;
+        abort.current?.abort();
+        ranking.current = false;
+        pendingUpdate.current = null;
+        if (updateTimer.current) clearTimeout(updateTimer.current);
+        pageRef.current = null;
+        capturedTabId.current = undefined;
+        setPage(null);
+        setReading(null);
+        setSaved(null);
+        setResult(null);
+        setUrl("");
+        setBusy(null);
+        setStatus(value.captureStatus === "unavailable" ? "This browser page cannot be captured." : "Opening the current browser page…");
+      }
+      if (value.snapshot) {
+        const newDocument = tabId !== capturedTabId.current;
+        capturedTabId.current = tabId;
+        receiveSnapshot.current(value.snapshot as PageSnapshot, newDocument);
+      }
+      if (value.captureError) setError(String(value.captureError));
+      else if ("captureError" in value) setError("");
+    };
+    chrome.storage.session
+      .get(["snapshot", "captureError", "sourceRevision", "sourceTabId", "captureStatus"])
+      .then(acceptStored);
     const listener = (
       changes: Record<string, chrome.storage.StorageChange>,
       area: string,
     ) => {
       if (area !== "session") return;
-      if (changes.snapshot?.newValue)
-        acceptPage(changes.snapshot.newValue as PageSnapshot);
-      if (changes.captureError)
-        setError(String(changes.captureError.newValue || ""));
-      if (changes.pageChanged) setChanged(!!changes.pageChanged.newValue);
+      acceptStored(
+        Object.fromEntries(
+          Object.entries(changes).map(([key, change]) => [
+            key,
+            change.newValue,
+          ]),
+        ),
+      );
     };
     chrome.storage.onChanged.addListener(listener);
-    return () => chrome.storage.onChanged.removeListener(listener);
+    return () => {
+      active = false;
+      clearTimeout(reconnect);
+      port?.disconnect();
+      chrome.storage.onChanged.removeListener(listener);
+    };
   }, []);
   async function loadExample(path = "/example.html", classify = false) {
+    const generation = ++loadGeneration.current;
+    loadingSource.current = true;
+    sourceSession.current++;
+    pendingUpdate.current = null;
+    if (updateTimer.current) clearTimeout(updateTimer.current);
+    loadAbort.current?.abort();
+    const controller = new AbortController();
+    loadAbort.current = controller;
+    epoch.current++;
+    abort.current?.abort();
+    ranking.current = false;
     setBusy("load");
     setError("");
     try {
-      const html = await fetch(API + path).then((r) => r.text());
+      const html = await fetch(API + path, { signal: controller.signal }).then(
+        (r) => r.text(),
+      );
+      if (generation !== loadGeneration.current) return null;
       const doc = new DOMParser().parseFromString(html, "text/html");
       const p = extractDocument(doc, (API || location.origin) + path);
       p.source = "example";
@@ -166,11 +280,18 @@ export default function App() {
       acceptPage(p);
       setUrl(p.url);
       return p;
-    } catch {
-      setError("Could not load the sample website.");
+    } catch (error) {
+      if (
+        generation === loadGeneration.current &&
+        !(error instanceof Error && error.name === "AbortError")
+      )
+        setError("Could not load the sample website.");
       return null;
     } finally {
-      setBusy(null);
+      if (generation === loadGeneration.current) {
+        loadingSource.current = false;
+        setBusy(null);
+      }
     }
   }
   async function loadUrl(nextUrl?: string) {
@@ -185,13 +306,19 @@ export default function App() {
         return;
       }
     } catch {}
+    const generation = ++loadGeneration.current;
+    loadingSource.current = true;
+    sourceSession.current++;
+    ranking.current = false;
+    pendingUpdate.current = null;
+    if (updateTimer.current) clearTimeout(updateTimer.current);
+    loadAbort.current?.abort();
     setBusy("load");
     setError("");
     epoch.current++;
     abort.current?.abort();
     const controller = new AbortController();
-    abort.current = controller;
-    const token = epoch.current;
+    loadAbort.current = controller;
     try {
       const response = await fetch(API + "/api/page", {
         method: "POST",
@@ -203,18 +330,28 @@ export default function App() {
       });
       const p = await response.json();
       if (!response.ok) throw new Error(p.error);
-      if (epoch.current !== token) return;
+      if (generation !== loadGeneration.current) return;
       navigateRank.current = !!nextUrl && auto;
       acceptPage(p);
       setUrl(p.url);
     } catch (e) {
-      if (e instanceof Error && e.name !== "AbortError") setError(e.message);
+      if (
+        generation === loadGeneration.current &&
+        e instanceof Error &&
+        e.name !== "AbortError"
+      )
+        setError(e.message);
     } finally {
-      setBusy(null);
+      if (generation === loadGeneration.current) {
+        loadingSource.current = false;
+        setBusy(null);
+      }
     }
   }
   async function rank(target = page, context?: ReadContext) {
     if (!target) return;
+    ranking.current = true;
+    nextRankAt.current = Date.now() + 5000;
     const token = ++epoch.current;
     abort.current?.abort();
     const controller = new AbortController();
@@ -236,14 +373,21 @@ export default function App() {
       if (!r.ok) throw new Error(data.error);
       setLastCall(data);
       if (token !== epoch.current) return;
+      if (
+        pageRef.current &&
+        snapshotSignature(pageRef.current) !== snapshotSignature(target) &&
+        !onlyCountdownTicks(target, pageRef.current)
+      )
+        return;
+      baseline.current = target;
       setResult(data);
       const order = readingOrder(target, data);
       if (context) {
         const previous = new Map(
-          context.previousBlocks.map((b) => [b.id, b.text]),
+          context.previousBlocks.map((b) => [b.id, blockSignature(b)]),
         );
         const changedBlocks = order.filter(
-          (b) => previous.get(b.id) !== b.text,
+          (b) => previous.get(b.id) !== blockSignature(b),
         );
         const decision = data.transition?.choice || "NONE";
         setTimeline((rows) => [
@@ -255,7 +399,7 @@ export default function App() {
             model: data.model,
             text:
               changedBlocks.map((b) => b.text).join(" / ") ||
-              "Source blocks removed.",
+              "Previously captured content is no longer in this capture.",
             confidence: data.transition?.confidence,
           },
           ...rows,
@@ -325,7 +469,11 @@ export default function App() {
         );
       }
     } finally {
-      if (token === epoch.current) setBusy(null);
+      if (token === epoch.current) {
+        ranking.current = false;
+        setBusy(null);
+        processPending.current();
+      }
     }
   }
   useEffect(() => {
@@ -337,25 +485,96 @@ export default function App() {
   function updateTask(value: string) {
     epoch.current++;
     abort.current?.abort();
+    ranking.current = false;
+    pendingUpdate.current = null;
+    if (updateTimer.current) clearTimeout(updateTimer.current);
     setBusy(null);
     setTask(value);
     setResult(null);
     setStatus("Task changed. Classify again to get a new reading order.");
+    if (extension && value.trim().length >= 3) {
+      nextRankAt.current = 0;
+      updateTimer.current = setTimeout(() => {
+        baseline.current = null;
+        pendingUpdate.current = pageRef.current;
+        processPending.current();
+      }, 700);
+    }
   }
   const ordered = page ? readingOrder(page, result) : [];
   const current =
     reading || page?.blocks.find((b) => b.id === selected) || ordered[0];
   const selectedIndex = ordered.findIndex((b) => b.id === current?.id);
-  const text = current?.text || "Your selected text will appear here.";
+  const text = current?.text || "";
   const chars = Array.from(text);
   const line = chars.slice(offset, offset + cells).join("");
   const allDots = toBraille(line);
   const dots = allDots.slice(cellOffset, cellOffset + cells);
   const ranks = new Map(result?.results.map((r) => [r.id, r]) || []);
-  function readBlock(block: DomBlock) {
+  processPending.current = () => {
+    if (ranking.current || !pendingUpdate.current) return;
+    if (updateTimer.current) clearTimeout(updateTimer.current);
+    const wait = nextRankAt.current - Date.now();
+    if (wait > 0) {
+      updateTimer.current = setTimeout(() => processPending.current(), wait);
+      return;
+    }
+    const next = pendingUpdate.current;
+    pendingUpdate.current = null;
+    const previous = baseline.current;
+    void rank(
+      next,
+      previous && current
+        ? { current, offset, previousBlocks: previous.blocks }
+        : undefined,
+    );
+  };
+  receiveSnapshot.current = (incoming, newDocument = false) => {
+    if (loadingSource.current) return;
+    const previous = pageRef.current;
+    if (newDocument || !previous || incoming.url !== previous.url) {
+      acceptPage(incoming);
+      if (extension && incoming.blocks.length) {
+        baseline.current = null;
+        pendingUpdate.current = incoming;
+        processPending.current();
+      }
+      return;
+    }
+    const observed = lastObserved.current || previous;
+    lastObserved.current = incoming;
+    if (snapshotSignature(previous) === snapshotSignature(incoming)) return;
+    if (onlyCountdownTicks(observed, incoming)) return;
+    const next = {
+      ...incoming,
+      previewHtml: incoming.previewHtml || previous.previewHtml,
+    };
+    const changes = sourceChanges(previous, next);
+    pageRef.current = next;
+    setPage(next);
+    setChanged(false);
+    setUpdateSummary(
+      `${changes.changed.length} changed · ${changes.added.length} added · ${changes.removed.length} no longer captured`,
+    );
+    setStatus("Page changed. Your reading line is held while Jev evaluates.");
+    pendingUpdate.current = next;
+    processPending.current();
+  };
+  function cancelReadingRequest() {
     epoch.current++;
     abort.current?.abort();
+    ranking.current = false;
+    if (
+      pageRef.current &&
+      baseline.current &&
+      snapshotSignature(pageRef.current) !== snapshotSignature(baseline.current)
+    )
+      pendingUpdate.current = pageRef.current;
     setBusy(null);
+    setTimeout(() => processPending.current(), 0);
+  }
+  function readBlock(block: DomBlock) {
+    cancelReadingRequest();
     setReading(block);
     setSaved(null);
     setSelected(block.id);
@@ -365,9 +584,7 @@ export default function App() {
     if (speaking) speak(block.text);
   }
   function pan(direction: number) {
-    epoch.current++;
-    abort.current?.abort();
-    setBusy(null);
+    cancelReadingRequest();
     setOffset((o) =>
       Math.min(
         Math.max(0, o + direction * cells),
@@ -404,6 +621,45 @@ export default function App() {
       setError("Open a web page and click the Brailly extension icon first.");
     }
   }
+  async function refreshSource() {
+    const source = pageRef.current;
+    if (!source || refreshing) return;
+    setRefreshing(true);
+    const navigation = source.url;
+    const sourceToken = sourceSession.current;
+    try {
+      const response = await fetch(API + "/api/page", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: navigation }),
+      });
+      const next = await response.json();
+      if (!response.ok) throw new Error(next.error);
+      if (
+        sourceToken !== sourceSession.current ||
+        pageRef.current?.url !== navigation
+      )
+        return;
+      if (next.previewHtml) {
+        const token = crypto.randomUUID();
+        refreshingPreview.current = { token, page: next };
+        setFrame({
+          html: frameDocument(next.previewHtml, next.url, token),
+          token,
+        });
+      } else receiveSnapshot.current(next);
+      setStatus("Source refreshed. Your reading position is held.");
+    } catch (error) {
+      if (sourceToken !== sourceSession.current) return;
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Could not refresh the source.",
+      );
+    } finally {
+      setRefreshing(false);
+    }
+  }
   function exportTrace() {
     if (!result) return;
     const blob = new Blob(
@@ -419,9 +675,7 @@ export default function App() {
   }
   function resume() {
     if (!saved) return;
-    epoch.current++;
-    abort.current?.abort();
-    setBusy(null);
+    cancelReadingRequest();
     setReading(saved.block);
     setSelected(saved.block.id);
     setOffset(saved.offset);
@@ -469,14 +723,29 @@ export default function App() {
     } else if (m.type === "snapshot") {
       const previous = pageRef.current;
       const incoming = m.page as PageSnapshot;
-      if (!incoming?.blocks?.length) return;
-      const next = { ...incoming, previewHtml: previous?.previewHtml };
+      if (!Array.isArray(incoming?.blocks)) return;
+      const refresh = refreshingPreview.current;
+      const next = {
+        ...incoming,
+        previewHtml:
+          refresh?.token === frame.token
+            ? refresh.page.previewHtml
+            : previous?.previewHtml,
+      };
       if (m.version === 1) {
         setFrameReady(true);
+        if (refresh?.token === frame.token) {
+          refreshingPreview.current = null;
+          receiveSnapshot.current(next);
+          return;
+        }
         epoch.current++;
         abort.current?.abort();
         setBusy(null);
         setPage(next);
+        pageRef.current = next;
+        baseline.current = next;
+        lastObserved.current = next;
         setResult(null);
         if (!current || !next.blocks.some((b) => b.id === current.id)) {
           setReading(next.blocks[0]);
@@ -489,25 +758,7 @@ export default function App() {
         }
         return;
       }
-      setPage(next);
-      setChanged(false);
-      setStatus("DOM changed. Your reading line is held while Jev evaluates.");
-      if (previous && current && auto)
-        void rank(next, { current, offset, previousBlocks: previous.blocks });
-      else {
-        setResult(null);
-        setTimeline((rows) => [
-          {
-            id: next.id,
-            decision: "PENDING",
-            at: new Date().toISOString(),
-            latencyMs: 0,
-            model: "Runtime",
-            text: "The page changed. Classify to evaluate the update.",
-          },
-          ...rows,
-        ]);
-      }
+      receiveSnapshot.current(next);
     }
   };
   useEffect(() => {
@@ -570,17 +821,52 @@ export default function App() {
   }
   return (
     <div className={extension ? "brailly extension-app" : "brailly"}>
-      <a className="skip" href="#reading-output">
+      <a
+        className="skip"
+        href="#reading-output"
+        onClick={(event) => {
+          event.preventDefault();
+          setActiveTab("read");
+          setTimeout(() => output.current?.focus(), 0);
+        }}
+      >
         Skip to reading output
       </a>
       <header className="header">
         <a className="wordmark" href="/" aria-label="Brailly home">
-          <svg className="brand-mark" width="42" height="42" viewBox="0 0 42 42" aria-hidden="true">
-            <rect x="3" y="3" width="27" height="29" rx="12" fill="none" stroke="currentColor" strokeWidth="3"/>
-            <path d="m28 29 10 10" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
-            <circle cx="12" cy="11" r="2.7" fill="currentColor"/><circle cx="12" cy="18" r="2.7" fill="currentColor"/>
-            <g fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="21" cy="11" r="2.1"/><circle cx="21" cy="18" r="2.1"/><circle cx="12" cy="25" r="2.1"/><circle cx="21" cy="25" r="2.1"/></g>
-          </svg>brailly
+          <svg
+            className="brand-mark"
+            width="42"
+            height="42"
+            viewBox="0 0 42 42"
+            aria-hidden="true"
+          >
+            <rect
+              x="3"
+              y="3"
+              width="27"
+              height="29"
+              rx="12"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+            />
+            <path
+              d="m28 29 10 10"
+              stroke="currentColor"
+              strokeWidth="4"
+              strokeLinecap="round"
+            />
+            <circle cx="12" cy="11" r="2.7" fill="currentColor" />
+            <circle cx="12" cy="18" r="2.7" fill="currentColor" />
+            <g fill="none" stroke="currentColor" strokeWidth="1.4">
+              <circle cx="21" cy="11" r="2.1" />
+              <circle cx="21" cy="18" r="2.1" />
+              <circle cx="12" cy="25" r="2.1" />
+              <circle cx="21" cy="25" r="2.1" />
+            </g>
+          </svg>
+          brailly
         </a>
         <button
           className="extension-button"
@@ -612,422 +898,476 @@ export default function App() {
             Page changed. <button onClick={captureTab}>Refresh capture</button>
           </div>
         )}
-        <div className="workspace-grid">
-          <div className="web-column">
-            <details className="jev-details">
-              <summary>
-                <strong>Jev</strong>
-                <span>
-                  {lastCall
-                    ? lastCall.latencyMs +
-                      " ms · " +
-                      (
-                        (usage?.input_tokens || 0) + (usage?.output_tokens || 0)
-                      ).toLocaleString() +
-                      " tokens"
-                    : "Score + Choice"}
-                </span>
-                <ChevronDown size={20} />
-              </summary>
-              <div className="call-destination">
-                <code>POST api.typesafe.ai/v1/systemone</code>
-                <span>{lastCall?.model || "jev-1.13.0"}</span>
-              </div>
-              <div className="jev-metrics">
-                <div>
-                  <span>Input tokens</span>
-                  <b>{usage?.input_tokens?.toLocaleString() ?? "N/A"}</b>
+        <div className="workspace-tabs" role="tablist" aria-label="Workspace">
+          {(["analyze", "read"] as const).map((tab, index) => (
+            <button
+              key={tab}
+              id={tab + "-tab"}
+              role="tab"
+              aria-selected={activeTab === tab}
+              aria-controls={tab + "-panel"}
+              tabIndex={activeTab === tab ? 0 : -1}
+              onClick={() => setActiveTab(tab)}
+              onKeyDown={(event) => {
+                if (
+                  !["ArrowLeft", "ArrowRight", "Home", "End"].includes(
+                    event.key,
+                  )
+                )
+                  return;
+                event.preventDefault();
+                const next =
+                  event.key === "Home"
+                    ? "analyze"
+                    : event.key === "End"
+                      ? "read"
+                      : index === 0
+                        ? "read"
+                        : "analyze";
+                setActiveTab(next);
+                document.getElementById(next + "-tab")?.focus();
+              }}
+            >
+              {tab === "analyze" ? "Analyze" : "Read"}
+            </button>
+          ))}
+        </div>
+        <div className="tab-workspace">
+          <div className="tab-content">
+            <section
+              className="analysis-tab"
+              id="analyze-panel"
+              role="tabpanel"
+              aria-labelledby="analyze-tab"
+              hidden={activeTab !== "analyze"}
+            >
+              <details className="jev-details">
+                <summary>
+                  <strong>Jev</strong>
+                  <span>
+                    {lastCall
+                      ? lastCall.latencyMs +
+                        " ms · " +
+                        (
+                          (usage?.input_tokens || 0) +
+                          (usage?.output_tokens || 0)
+                        ).toLocaleString() +
+                        " tokens"
+                      : "Score + Choice"}
+                  </span>
+                  <ChevronDown size={20} />
+                </summary>
+                <div className="call-destination">
+                  <code>POST api.typesafe.ai/v1/systemone</code>
+                  <span>{lastCall?.model || "jev-1.13.0"}</span>
                 </div>
-                <div>
-                  <span>Output tokens</span>
-                  <b>{usage?.output_tokens?.toLocaleString() ?? "N/A"}</b>
+                <div className="jev-metrics">
+                  <div>
+                    <span>Input tokens</span>
+                    <b>{usage?.input_tokens?.toLocaleString() ?? "N/A"}</b>
+                  </div>
+                  <div>
+                    <span>Output tokens</span>
+                    <b>{usage?.output_tokens?.toLocaleString() ?? "N/A"}</b>
+                  </div>
+                  <div>
+                    <span>Last response</span>
+                    <b>{lastCall ? lastCall.latencyMs + " ms" : "N/A"}</b>
+                  </div>
+                  <div>
+                    <span>Calls this session</span>
+                    <b>{calls}</b>
+                  </div>
                 </div>
-                <div>
-                  <span>Last response</span>
-                  <b>{lastCall ? lastCall.latencyMs + " ms" : "N/A"}</b>
+                <div className="call-schema">
+                  {page?.blocks.length || 0}
+                  {page?.truncated ? " / " + page.totalCandidates : ""} DOM
+                  blocks → Score 0–3 + Choice
                 </div>
-                <div>
-                  <span>Calls this session</span>
-                  <b>{calls}</b>
-                </div>
-              </div>
-              <div className="call-schema">
-                {page?.blocks.length || 0}
-                {page?.truncated ? " / " + page.totalCandidates : ""} DOM blocks
-                → Score 0–3 + Choice
-              </div>
-              {result && (
-                <div className="classification-results">
-                  {readingOrder(page!, result)
-                    .slice(0, 5)
-                    .map((b) => {
-                      const r = ranks.get(b.id);
-                      if (!r) return null;
-                      return (
-                        <button key={b.id} onClick={() => readBlock(b)}>
-                          <span>{b.text}</span>
-                          <b>{r.score.toFixed(1)} / 3</b>
-                          <small>{categoryLabel[r.category]}</small>
-                        </button>
-                      );
-                    })}
-                </div>
-              )}
-              {timeline.length > 0 && (
-                <div className="decision-trail">
-                  {timeline.slice(0, 4).map((row, i) => (
-                    <div className="trail-row" key={row.id + "-" + i}>
-                      <b className={"transition " + row.decision.toLowerCase()}>
-                        {row.decision}
-                      </b>
-                      <p>{row.text}</p>
-                      <span>
-                        {row.latencyMs > 0 ? row.latencyMs + " ms" : row.model}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <details className="request-details">
-                <summary>Request / response</summary>
-                <button onClick={exportTrace} disabled={!result}>
-                  <Download size={18} /> Export result
-                </button>
-                <pre tabIndex={0} aria-label="Jev request and response">
-                  {JSON.stringify(
-                    result
-                      ? {
-                          request: result.request,
-                          response: {
-                            model: result.model,
-                            usage: result.usage,
-                            latencyMs: result.latencyMs,
-                            transition: result.transition,
-                            results: result.results,
-                          },
-                        }
-                      : page
-                        ? { task, dom: page.blocks }
-                        : "Read a page to inspect the call.",
-                    null,
-                    2,
-                  )}
-                </pre>
-              </details>
-            </details>
-            <section className="input-panel" aria-label="Page and task">
-              <div className="input-line">
-                <label htmlFor="url">Website</label>
-                <input
-                  id="url"
-                  type="text"
-                  placeholder="Paste a website URL"
-                  value={url}
-                  disabled={extension}
-                  onChange={(e) => setUrl(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") void readPage();
-                  }}
-                />
-                {extension && (
-                  <button onClick={captureTab} aria-label="Capture tab">
-                    <RefreshCw size={22} />
-                  </button>
+                {timeline.length > 0 && (
+                  <div className="decision-trail">
+                    {timeline.slice(0, 4).map((row, i) => (
+                      <div className="trail-row" key={row.id + "-" + i}>
+                        <b
+                          className={"transition " + row.decision.toLowerCase()}
+                        >
+                          {row.decision}
+                        </b>
+                        <p>{row.text}</p>
+                        <span>
+                          {row.latencyMs > 0
+                            ? row.latencyMs + " ms"
+                            : row.model}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 )}
-              </div>
-              <div className="task-line">
-                <label htmlFor="goal">Find</label>
-                <input
-                  id="goal"
-                  value={task}
-                  maxLength={500}
-                  placeholder="What do you want to read?"
-                  onChange={(e) => updateTask(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") void readPage();
+                <details className="request-details">
+                  <summary>Request / response</summary>
+                  <button onClick={exportTrace} disabled={!result}>
+                    <Download size={18} /> Export result
+                  </button>
+                  <pre tabIndex={0} aria-label="Jev request and response">
+                    {JSON.stringify(
+                      result
+                        ? {
+                            request: result.request,
+                            response: {
+                              model: result.model,
+                              usage: result.usage,
+                              latencyMs: result.latencyMs,
+                              transition: result.transition,
+                              results: result.results,
+                            },
+                          }
+                        : page
+                          ? { task, dom: page.blocks }
+                          : "Read a page to inspect the call.",
+                      null,
+                      2,
+                    )}
+                  </pre>
+                </details>
+              </details>
+              <section className="input-panel" aria-label="Page and task">
+                <div className="input-line">
+                  <label htmlFor="url">Website</label>
+                  <input
+                    id="url"
+                    type="text"
+                    placeholder="Paste a website URL"
+                    value={url}
+                    disabled={extension}
+                    onChange={(e) => setUrl(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void readPage();
+                    }}
+                  />
+                  {extension && (
+                    <button onClick={captureTab} aria-label="Capture tab">
+                      <RefreshCw size={22} />
+                    </button>
+                  )}
+                </div>
+                <div className="task-line">
+                  <label htmlFor="goal">Find</label>
+                  <input
+                    id="goal"
+                    value={task}
+                    maxLength={500}
+                    placeholder="What do you want to read?"
+                    onChange={(e) => updateTask(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void readPage();
+                    }}
+                  />
+                  <button
+                    className="primary"
+                    onClick={() => void readPage()}
+                    disabled={
+                      busy !== null ||
+                      task.trim().length < 3 ||
+                      !url.trim() ||
+                      (!!frame && !frameReady)
+                    }
+                  >
+                    {busy ? (
+                      <LoaderCircle className="spin" size={20} />
+                    ) : (
+                      <ArrowRight size={20} />
+                    )}
+                    {busy === "load"
+                      ? "Loading page"
+                      : busy === "rank"
+                        ? "Jev is reading"
+                        : "Analyze page"}
+                  </button>
+                </div>
+              </section>
+              {!extension && (
+                <div className="under-input">
+                  <button disabled={!!busy} onClick={() => void loadExample()}>
+                    Museum demo
+                  </button>
+                  <button
+                    disabled={!!busy}
+                    onClick={() => {
+                      updateTask(
+                        "Learn how Braille works and how refreshable displays are used.",
+                      );
+                      void loadUrl("https://en.wikipedia.org/wiki/Braille");
+                    }}
+                  >
+                    Wikipedia
+                  </button>
+                  <button
+                    disabled={!!busy}
+                    onClick={() => {
+                      updateTask(
+                        "Understand how to use a Score and interpret its result.",
+                      );
+                      void loadUrl("https://docs.typesafe.ai/primitives/score");
+                    }}
+                  >
+                    Jev docs
+                  </button>
+                </div>
+              )}
+              {!extension && (
+                <section className="source-panel">
+                  <h2>Web page</h2>
+                  <div className="browser-frame">
+                    <div className="browser-bar">
+                      <span>
+                        {page ? new URL(page.url).hostname : "Your website"}
+                      </span>
+                      <button
+                        disabled={
+                          !page || refreshing || page.source === "example"
+                        }
+                        aria-label="Refresh source page"
+                        onClick={() => void refreshSource()}
+                      >
+                        <RefreshCw
+                          size={20}
+                          className={refreshing ? "spin" : undefined}
+                        />
+                      </button>
+                      <button
+                        disabled={!page}
+                        aria-label="Open original page"
+                        onClick={() =>
+                          page &&
+                          window.open(page.url, "_blank", "noopener,noreferrer")
+                        }
+                      >
+                        <ArrowUpRight size={20} />
+                      </button>
+                    </div>
+                    {frame ? (
+                      <iframe
+                        data-token={frame.token}
+                        ref={iframe}
+                        title="Interactive source page"
+                        sandbox="allow-scripts"
+                        srcDoc={frame.html}
+                      />
+                    ) : (
+                      <div className="empty-source">
+                        Paste a website above to open it here.
+                      </div>
+                    )}
+                  </div>
+                  {page?.source === "example" && (
+                    <details className="demo-controls">
+                      <summary>Test page changes</summary>
+                      <div className="live-controls">
+                        <button
+                          onClick={() => sendUpdate("noise")}
+                          disabled={!!busy}
+                        >
+                          Change offer
+                        </button>
+                        <button
+                          onClick={() => sendUpdate("entrance")}
+                          disabled={!!busy}
+                        >
+                          Close entrance
+                        </button>
+                        <button
+                          onClick={() => sendUpdate("hours")}
+                          disabled={!!busy}
+                        >
+                          Change hours
+                        </button>
+                        <button
+                          onClick={() => void playUpdates()}
+                          disabled={!result && !playing}
+                        >
+                          <Play size={18} />
+                          {playing ? "Stop demo" : "Run demo"}
+                        </button>
+                      </div>
+                    </details>
+                  )}
+                </section>
+              )}
+            </section>
+            <section
+              className="read-tab"
+              id="read-panel"
+              role="tabpanel"
+              aria-labelledby="read-tab"
+              hidden={activeTab !== "read"}
+            >
+              <section className="output-section" aria-label="Braille output">
+                <div className="output-heading">
+                  <h2>Braille display</h2>
+                  <button
+                    className="hardware-link"
+                    onClick={() => setModal("hardware")}
+                  >
+                    Compatible devices
+                  </button>
+                </div>
+                <BrailleDevice
+                  dots={dots}
+                  cells={cells}
+                  line={line}
+                  page={Math.floor(cellOffset / cells) + 1}
+                  pages={Math.max(1, Math.ceil(allDots.length / cells))}
+                  interrupted={!!saved}
+                  canPanLeft={cellOffset > 0 || offset > 0}
+                  canPanRight={
+                    cellOffset + cells < allDots.length ||
+                    offset + cells < chars.length
+                  }
+                  onLeft={() => {
+                    cancelReadingRequest();
+                    if (cellOffset > 0)
+                      setCellOffset(Math.max(0, cellOffset - cells));
+                    else pan(-1);
+                  }}
+                  onRight={() => {
+                    cancelReadingRequest();
+                    if (cellOffset + cells < allDots.length)
+                      setCellOffset(cellOffset + cells);
+                    else pan(1);
+                  }}
+                  onPrevious={() => {
+                    if (ordered[selectedIndex - 1])
+                      readBlock(ordered[selectedIndex - 1]);
+                  }}
+                  onNext={() => {
+                    if (ordered[selectedIndex + 1])
+                      readBlock(ordered[selectedIndex + 1]);
+                  }}
+                  hasPrevious={selectedIndex > 0}
+                  hasNext={selectedIndex < ordered.length - 1}
+                  onResume={saved ? resume : undefined}
+                  onCells={(value) => {
+                    cancelReadingRequest();
+                    setCells(value);
+                    setCellOffset(0);
                   }}
                 />
-                <button
-                  className="primary"
-                  onClick={() => void readPage()}
-                  disabled={
-                    busy !== null ||
-                    task.trim().length < 3 ||
-                    !url.trim() ||
-                    (!!frame && !frameReady)
-                  }
-                >
-                  {busy ? (
-                    <LoaderCircle className="spin" size={20} />
-                  ) : (
-                    <ArrowRight size={20} />
-                  )}
-                  {busy === "load"
-                    ? "Loading page"
-                    : busy === "rank"
-                      ? "Jev is reading"
-                      : "Read page"}
-                </button>
-              </div>
-            </section>
-            {!extension && (
-              <div className="under-input">
-                <button disabled={!!busy} onClick={() => void loadExample()}>
-                  Museum demo
-                </button>
-                <button
-                  disabled={!!busy}
-                  onClick={() => {
-                    updateTask(
-                      "Learn how Braille works and how refreshable displays are used.",
-                    );
-                    void loadUrl("https://en.wikipedia.org/wiki/Braille");
-                  }}
-                >
-                  Wikipedia
-                </button>
-                <button
-                  disabled={!!busy}
-                  onClick={() => {
-                    updateTask(
-                      "Understand how to use a Score and interpret its result.",
-                    );
-                    void loadUrl("https://docs.typesafe.ai/primitives/score");
-                  }}
-                >
-                  Jev docs
-                </button>
-              </div>
-            )}
-            {!extension && (
-              <section className="source-panel">
-                <h2>Web page</h2>
-                <div className="browser-frame">
-                  <div className="browser-bar">
+              </section>
+              <section className="reading-panel">
+                <h2>Reading</h2>
+                {current?.context && (
+                  <p id="reading-context">{current.context}</p>
+                )}
+                <div className="text-output">
+                  <textarea
+                    id="reading-output"
+                    ref={output}
+                    readOnly
+                    value={line}
+                    placeholder="Waiting for a web page."
+                    aria-label="Stable reading output"
+                    aria-describedby={
+                      current?.context ? "reading-context" : undefined
+                    }
+                    aria-live="polite"
+                    aria-atomic="true"
+                  />
+                  <div className="reader-buttons">
+                    <button
+                      onClick={() => {
+                        if (ordered[selectedIndex - 1])
+                          readBlock(ordered[selectedIndex - 1]);
+                      }}
+                      disabled={selectedIndex <= 0}
+                      aria-label="Previous block"
+                    >
+                      <ArrowLeft size={22} />
+                    </button>
                     <span>
-                      {page ? new URL(page.url).hostname : "Your website"}
+                      {selectedIndex < 0
+                        ? "Selection"
+                        : selectedIndex + 1 + " / " + ordered.length}
                     </span>
                     <button
-                      disabled={!page}
-                      aria-label="Open original page"
-                      onClick={() =>
-                        page &&
-                        window.open(page.url, "_blank", "noopener,noreferrer")
-                      }
+                      onClick={() => {
+                        if (ordered[selectedIndex + 1])
+                          readBlock(ordered[selectedIndex + 1]);
+                      }}
+                      disabled={selectedIndex >= ordered.length - 1}
+                      aria-label="Next block"
                     >
-                      <ArrowUpRight size={20} />
+                      <ArrowRight size={22} />
+                    </button>
+                    <button
+                      className="listen"
+                      disabled={!page}
+                      onClick={() => (speaking ? stopSpeech() : speak())}
+                    >
+                      {speaking ? <VolumeX size={22} /> : <Volume2 size={22} />}{" "}
+                      {speaking ? "Stop" : "Listen"}
                     </button>
                   </div>
-                  {frame ? (
-                    <iframe
-                      data-token={frame.token}
-                      ref={iframe}
-                      title="Interactive source page"
-                      sandbox="allow-scripts"
-                      srcDoc={frame.html}
-                    />
-                  ) : (
-                    <div className="empty-source">
-                      Paste a website above to open it here.
-                    </div>
-                  )}
                 </div>
-                {page?.source === "example" && (
-                  <details className="demo-controls">
-                    <summary>Test page changes</summary>
-                    <div className="live-controls">
-                      <button
-                        onClick={() => sendUpdate("noise")}
-                        disabled={!!busy}
-                      >
-                        Change offer
-                      </button>
-                      <button
-                        onClick={() => sendUpdate("entrance")}
-                        disabled={!!busy}
-                      >
-                        Close entrance
-                      </button>
-                      <button
-                        onClick={() => sendUpdate("hours")}
-                        disabled={!!busy}
-                      >
-                        Change hours
-                      </button>
-                      <button
-                        onClick={() => void playUpdates()}
-                        disabled={!result && !playing}
-                      >
-                        <Play size={18} />
-                        {playing ? "Stop demo" : "Run demo"}
-                      </button>
-                    </div>
-                  </details>
-                )}
-              </section>
-            )}
-          </div>
-          <div className="device-column">
-            <section className="output-section" aria-label="Braille output">
-              <div className="output-heading">
-                <h2>Braille display</h2>
-                <button
-                  className="hardware-link"
-                  onClick={() => setModal("hardware")}
-                >
-                  Compatible devices
-                </button>
-              </div>
-              <BrailleDevice
-                dots={dots}
-                cells={cells}
-                line={line}
-                page={Math.floor(cellOffset / cells) + 1}
-                pages={Math.max(1, Math.ceil(allDots.length / cells))}
-                interrupted={!!saved}
-                canPanLeft={cellOffset > 0 || offset > 0}
-                canPanRight={
-                  cellOffset + cells < allDots.length ||
-                  offset + cells < chars.length
-                }
-                onLeft={() =>
-                  cellOffset > 0
-                    ? setCellOffset(Math.max(0, cellOffset - cells))
-                    : pan(-1)
-                }
-                onRight={() =>
-                  cellOffset + cells < allDots.length
-                    ? setCellOffset(cellOffset + cells)
-                    : pan(1)
-                }
-                onPrevious={() => {
-                  if (ordered[selectedIndex - 1])
-                    readBlock(ordered[selectedIndex - 1]);
-                }}
-                onNext={() => {
-                  if (ordered[selectedIndex + 1])
-                    readBlock(ordered[selectedIndex + 1]);
-                }}
-                hasPrevious={selectedIndex > 0}
-                hasNext={selectedIndex < ordered.length - 1}
-                onResume={saved ? resume : undefined}
-                onCells={(value) => {
-                  setCells(value);
-                  setCellOffset(0);
-                }}
-              />
-            </section>
-            <section className="reading-panel">
-              <h2>Reading</h2>
-              <label className="sr-only" htmlFor="block-picker">
-                Reading block
-              </label>
-              <select
-                className="reading-picker"
-                id="block-picker"
-                value={current?.id || ""}
-                onChange={(e) => {
-                  const b = page?.blocks.find((b) => b.id === e.target.value);
-                  if (b) readBlock(b);
-                }}
-              >
-                {current && !ordered.some((b) => b.id === current.id) && (
-                  <option value={current.id}>
-                    {current.text.slice(0, 100)}
-                  </option>
-                )}
-                {ordered.map((b, i) => (
-                  <option key={b.id} value={b.id}>
-                    {i + 1}. {b.text.slice(0, 100)}
-                  </option>
-                ))}
-              </select>
-              <div className="text-output">
-                <textarea
-                  id="reading-output"
-                  ref={output}
-                  readOnly
-                  value={line}
-                  aria-label="Stable reading output"
-                  aria-live="polite"
-                  aria-atomic="true"
-                />
-                <div className="reader-buttons">
-                  <button
-                    onClick={() => {
-                      if (ordered[selectedIndex - 1])
-                        readBlock(ordered[selectedIndex - 1]);
-                    }}
-                    disabled={selectedIndex <= 0}
-                    aria-label="Previous block"
-                  >
-                    <ArrowLeft size={22} />
+                <div className="reading-position">
+                  <button onClick={() => pan(-1)} disabled={offset === 0}>
+                    Previous line
                   </button>
                   <span>
-                    {selectedIndex < 0
-                      ? "Selection"
-                      : selectedIndex + 1 + " / " + ordered.length}
+                    {chars.length ? offset + 1 : 0}–{Math.min(offset + cells, chars.length)}
                   </span>
                   <button
-                    onClick={() => {
-                      if (ordered[selectedIndex + 1])
-                        readBlock(ordered[selectedIndex + 1]);
-                    }}
-                    disabled={selectedIndex >= ordered.length - 1}
-                    aria-label="Next block"
+                    onClick={() => pan(1)}
+                    disabled={offset + cells >= chars.length}
                   >
-                    <ArrowRight size={22} />
-                  </button>
-                  <button
-                    className="listen"
-                    disabled={!page}
-                    onClick={() => (speaking ? stopSpeech() : speak())}
-                  >
-                    {speaking ? <VolumeX size={22} /> : <Volume2 size={22} />}{" "}
-                    {speaking ? "Stop" : "Listen"}
+                    Next line
                   </button>
                 </div>
-              </div>
-              <div className="reading-position">
-                <button onClick={() => pan(-1)} disabled={offset === 0}>
-                  Previous line
-                </button>
-                <span>
-                  {offset + 1}–{Math.min(offset + cells, chars.length)}
-                </span>
-                <button
-                  onClick={() => pan(1)}
-                  disabled={offset + cells >= chars.length}
-                >
-                  Next line
-                </button>
-              </div>
-              {saved && (
-                <button className="resume-button" onClick={resume}>
-                  <ArrowLeft size={20} /> Resume reading
-                </button>
-              )}
-              {historical && !saved && (
-                <p className="historical-note">
-                  Saved text. Select a block for its latest version.
-                </p>
-              )}
-              {extension && current && (
-                <button
-                  className="source-link"
-                  onClick={() =>
-                    chrome.runtime.sendMessage({
-                      type: "locate",
-                      id: current.id,
-                      text: current.text,
-                    })
-                  }
-                >
-                  Go to source <ArrowUpRight size={18} />
-                </button>
-              )}
+                {saved && (
+                  <button className="resume-button" onClick={resume}>
+                    <ArrowLeft size={20} /> Resume reading
+                  </button>
+                )}
+                {historical && !saved && (
+                  <p className="historical-note">
+                    {page?.blocks.some((block) => block.id === current?.id)
+                      ? "This text changed. Your saved version stays here until you select the update."
+                      : "This item is no longer in the captured page. Your saved text is still here."}
+                  </p>
+                )}
+                {updateSummary && (
+                  <p className="historical-note" role="status">
+                    {updateSummary}
+                  </p>
+                )}
+                {extension && current && (
+                  <button
+                    className="source-link"
+                    onClick={() =>
+                      chrome.runtime.sendMessage({
+                        type: "locate",
+                        id: current.id,
+                        text: current.text,
+                      })
+                    }
+                  >
+                    Go to source <ArrowUpRight size={18} />
+                  </button>
+                )}
+              </section>
             </section>
           </div>
+          <ReadingQueue
+            blocks={ordered}
+            results={result?.snapshotId === page?.id ? result : null}
+            currentId={current?.id}
+            busy={busy === "rank"}
+            pending={!result || result.snapshotId !== page?.id}
+            queued={!!pendingUpdate.current}
+            onSelect={(block) => {
+              readBlock(block);
+              setActiveTab("read");
+            }}
+          />
         </div>
         <div className="live-status sr-only" role="status" aria-live="polite">
           {status}
@@ -1091,10 +1431,9 @@ export default function App() {
             {modal === "extension" ? (
               <>
                 <p>
-                  The Chrome extension captures the actual rendered DOM of the
-                  tab you choose, then opens Brailly beside it. Classification
-                  sends the extracted page text to Jev only when you press the
-                  button.
+                  Open Brailly once. While its panel is open, it follows your
+                  active tab, sends captured text to Jev automatically, and
+                  keeps the display in sync with page changes.
                 </p>
                 <ol>
                   <li>
@@ -1111,15 +1450,15 @@ export default function App() {
                     Choose <b>Load unpacked</b> and select the extracted folder.
                   </li>
                   <li>
-                    Open a web page and click Brailly. Set your purpose and
-                    choose <b>Classify with Jev</b>.
+                    Open a web page and click Brailly. Reading starts
+                    automatically.
                   </li>
                 </ol>
                 <p className="note">
-                  Active-tab access only. Passwords and input values are
-                  excluded. Chrome internal pages, cross-origin frames and
-                  closed shadow roots are not captured. The extension is
-                  unpacked, not a Chrome Web Store release.
+                  Website access lets Brailly follow the active tab. Close the
+                  panel to stop. Passwords and input values are excluded.
+                  Chrome internal pages and closed shadow roots are unavailable.
+                  Install as an unpacked extension.
                 </p>
               </>
             ) : (

@@ -1,6 +1,6 @@
 # Brailly
 
-Brailly reads a website's DOM, asks Jev which blocks matter for your task, and sends the original text to a stable reading output. The screen shows the webpage beside Jev's scores, API usage and a Braille device preview.
+Brailly reads a website's DOM, asks Jev which blocks matter for your task, and sends the original text to a stable reading output. Analyze shows the webpage and API usage. Read shows the Braille device. Both tabs share a ranked reading queue.
 
 [Open Brailly](https://brailly-jev.vercel.app) · [Demo walkthrough](docs/DEMO.md) · [Device connections](docs/HARDWARE.md)
 
@@ -23,13 +23,15 @@ Each Jev request includes the task and up to 60 DOM blocks. A [Score](https://do
 
 The museum controls change its actual DOM. Jev decides what to do on every run; there are no replacement scores when the service fails. Browser tests use explicit mocks for repeatable checks, while live calls run separately.
 
+[Real-site verification](docs/REAL-SITES.md) covers rendered Achla travel prices, Dayton emergency wait widgets, controlled DOM changes and actual Jev calls. [Devin handoff](docs/DEVIN-PROMPT.md) records the requirements and regression cases.
+
 ## Chrome extension
 
 Download [brailly-extension.zip](https://brailly-jev.vercel.app/brailly-extension.zip), unzip it, then open `chrome://extensions`. Enable Developer mode and choose **Load unpacked**. Select the extracted folder, open a website and click Brailly's toolbar icon.
 
-The extension uses `activeTab` permission and opens a side panel. Choose **Capture tab** to refresh its snapshot after a source change, then classify it. Unlike the iframe demo, the extension currently flags mutations and waits for recapture; it doesn't automatically send changing page text to Jev.
+Click Brailly once to open its side panel. It captures and analyzes the current website automatically, follows the active tab and navigation, and sends updated snapshots as the page changes. Website permissions allow this across HTTP and HTTPS sites. Close the panel to stop following. Updates hold the reading line while Jev evaluates them; bursts share a pending request rather than repeatedly cancelling the active call.
 
-Extraction excludes password fields and input values. It captures the main document, so cross-origin frames and closed shadow roots remain outside the snapshot. The extension is an unpacked build, not a Chrome Web Store release.
+Extraction excludes password fields and input values. The extension captures the main document and up to four supported visible child frames, including cross-origin frames covered by its website permissions. Closed shadow roots and browser-internal pages remain unavailable. The URL importer separately fetches bounded public HTML embeds, with source links. Use **Refresh source page** to fetch a new URL snapshot without losing your reading position. The extension is an unpacked build, not a Chrome Web Store release.
 
 ## Braille output
 

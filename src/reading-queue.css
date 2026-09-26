@@ -1,0 +1,129 @@
+.queue-panel {
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-height: calc(100dvh - 210px);
+  color: var(--ink, #30392c);
+  font-size: 16px;
+}
+.queue-heading {
+  flex-shrink: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.queue-heading h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 550;
+}
+.queue-heading > span {
+  color: var(--muted, #58644f);
+  font-variant-numeric: tabular-nums;
+}
+.queue-status {
+  flex-shrink: 0;
+  margin: 8px 0 16px;
+  color: var(--muted, #58644f);
+  font-size: 16px;
+  line-height: 1.5;
+}
+.queue-list {
+  flex: 1;
+  min-height: 0;
+  max-height: 560px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #89947d transparent;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-block: 1px solid var(--line, #d2d9c9);
+}
+.queue-list > li + li {
+  border-top: 1px solid var(--line, #d2d9c9);
+}
+.queue-item {
+  display: grid;
+  grid-template-columns: 1.6em minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 16px 12px;
+  border: 0;
+  border-left: 3px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.queue-item:not(:disabled):hover {
+  background: #edf2e5;
+}
+.queue-item:focus-visible {
+  outline: 2px solid var(--accent, #3f5034);
+  outline-offset: -3px;
+}
+.queue-item.queue-current {
+  border-left-color: var(--accent, #3f5034);
+  background: #e7eddc;
+}
+.queue-number,
+.queue-score {
+  color: var(--muted, #58644f);
+  font-variant-numeric: tabular-nums;
+}
+.queue-copy {
+  min-width: 0;
+}
+.queue-context {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted, #58644f);
+}
+.queue-text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+.queue-current-label {
+  display: block;
+  margin-top: 6px;
+  color: var(--accent, #3f5034);
+  font-weight: 550;
+}
+.queue-score {
+  white-space: nowrap;
+  text-align: right;
+}
+.queue-score:empty {
+  display: none;
+}
+.queue-score b {
+  color: var(--ink, #30392c);
+  font-weight: 550;
+}
+@media (max-width: 820px) {
+  .queue-panel {
+    position: static;
+    max-height: none;
+  }
+  .queue-list {
+    flex: auto;
+    max-height: 360px;
+  }
+  .queue-item {
+    padding: 14px 8px;
+    gap: 8px;
+  }
+}

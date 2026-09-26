@@ -14,6 +14,6 @@ A live museum run returned initial classification in 453 ms, `DEFER` for the off
 
 Chrome extension verification used a real persistent Chrome profile. Its service worker and bundled reader loaded, and `chrome.sidePanel.open` succeeded. Capture extracted 24 source blocks while excluding an inserted password value. A DOM edit set the change flag; recapture received the edited text, and locating that block focused the original element.
 
-The automation added localhost host permission to a temporary extension copy to exercise capture. The shipped manifest retains `activeTab`; the native toolbar action and its permission grant weren't automated. No physical display test occurred.
+Earlier automation used a temporary localhost permission. The current extension requests HTTP/S website access to follow the active tab while its reader is open. Browser automation exercises the real extension runtime; the native toolbar click remains a separate manual step. No physical display test occurred.
 
 The repository retains earlier scheduler tests and experimental BRLTTY code, but the judging walkthrough is the current DOM reader described in [DEMO.md](DEMO.md). Event submission, external review and eligibility are separate checks; this document makes no claim that they occurred.
