@@ -35,6 +35,7 @@ import {
 import { toBraille } from "./braille";
 import { frameDocument } from "./frame";
 import BrailleDevice from "./BrailleDevice";
+import ReadingQueue from "./ReadingQueue";
 const extension = typeof chrome !== "undefined" && !!chrome.runtime?.id;
 const API = extension ? "https://brailly-jev.vercel.app" : "";
 const categoryLabel = {
@@ -45,6 +46,7 @@ const categoryLabel = {
   EXTRA: "Extra",
 };
 export default function App() {
+  const [activeTab, setActiveTab] = useState<"analyze" | "read">("analyze");
   const [page, setPage] = useState<PageSnapshot | null>(null);
   const [url, setUrl] = useState("");
   const [task, setTask] = useState(
@@ -567,17 +569,52 @@ export default function App() {
   }
   return (
     <div className={extension ? "brailly extension-app" : "brailly"}>
-      <a className="skip" href="#reading-output">
+      <a
+        className="skip"
+        href="#reading-output"
+        onClick={(event) => {
+          event.preventDefault();
+          setActiveTab("read");
+          setTimeout(() => output.current?.focus(), 0);
+        }}
+      >
         Skip to reading output
       </a>
       <header className="header">
         <a className="wordmark" href="/" aria-label="Brailly home">
-          <svg className="brand-mark" width="42" height="42" viewBox="0 0 42 42" aria-hidden="true">
-            <rect x="3" y="3" width="27" height="29" rx="12" fill="none" stroke="currentColor" strokeWidth="3"/>
-            <path d="m28 29 10 10" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
-            <circle cx="12" cy="11" r="2.7" fill="currentColor"/><circle cx="12" cy="18" r="2.7" fill="currentColor"/>
-            <g fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="21" cy="11" r="2.1"/><circle cx="21" cy="18" r="2.1"/><circle cx="12" cy="25" r="2.1"/><circle cx="21" cy="25" r="2.1"/></g>
-          </svg>brailly
+          <svg
+            className="brand-mark"
+            width="42"
+            height="42"
+            viewBox="0 0 42 42"
+            aria-hidden="true"
+          >
+            <rect
+              x="3"
+              y="3"
+              width="27"
+              height="29"
+              rx="12"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+            />
+            <path
+              d="m28 29 10 10"
+              stroke="currentColor"
+              strokeWidth="4"
+              strokeLinecap="round"
+            />
+            <circle cx="12" cy="11" r="2.7" fill="currentColor" />
+            <circle cx="12" cy="18" r="2.7" fill="currentColor" />
+            <g fill="none" stroke="currentColor" strokeWidth="1.4">
+              <circle cx="21" cy="11" r="2.1" />
+              <circle cx="21" cy="18" r="2.1" />
+              <circle cx="12" cy="25" r="2.1" />
+              <circle cx="21" cy="25" r="2.1" />
+            </g>
+          </svg>
+          brailly
         </a>
         <button
           className="extension-button"
@@ -601,422 +638,446 @@ export default function App() {
             Page changed. <button onClick={captureTab}>Refresh capture</button>
           </div>
         )}
-        <div className="workspace-grid">
-          <div className="web-column">
-            <details className="jev-details">
-              <summary>
-                <strong>Jev</strong>
-                <span>
-                  {lastCall
-                    ? lastCall.latencyMs +
-                      " ms · " +
-                      (
-                        (usage?.input_tokens || 0) + (usage?.output_tokens || 0)
-                      ).toLocaleString() +
-                      " tokens"
-                    : "Score + Choice"}
-                </span>
-                <ChevronDown size={20} />
-              </summary>
-              <div className="call-destination">
-                <code>POST api.typesafe.ai/v1/systemone</code>
-                <span>{lastCall?.model || "jev-1.13.0"}</span>
-              </div>
-              <div className="jev-metrics">
-                <div>
-                  <span>Input tokens</span>
-                  <b>{usage?.input_tokens?.toLocaleString() ?? "N/A"}</b>
+        <div className="workspace-tabs" role="tablist" aria-label="Workspace">
+          {(["analyze", "read"] as const).map((tab, index) => (
+            <button
+              key={tab}
+              id={tab + "-tab"}
+              role="tab"
+              aria-selected={activeTab === tab}
+              aria-controls={tab + "-panel"}
+              tabIndex={activeTab === tab ? 0 : -1}
+              onClick={() => setActiveTab(tab)}
+              onKeyDown={(event) => {
+                if (
+                  !["ArrowLeft", "ArrowRight", "Home", "End"].includes(
+                    event.key,
+                  )
+                )
+                  return;
+                event.preventDefault();
+                const next =
+                  event.key === "Home"
+                    ? "analyze"
+                    : event.key === "End"
+                      ? "read"
+                      : index === 0
+                        ? "read"
+                        : "analyze";
+                setActiveTab(next);
+                document.getElementById(next + "-tab")?.focus();
+              }}
+            >
+              {tab === "analyze" ? "Analyze" : "Read"}
+            </button>
+          ))}
+        </div>
+        <div className="tab-workspace">
+          <div className="tab-content">
+            <section
+              className="analysis-tab"
+              id="analyze-panel"
+              role="tabpanel"
+              aria-labelledby="analyze-tab"
+              hidden={activeTab !== "analyze"}
+            >
+              <details className="jev-details">
+                <summary>
+                  <strong>Jev</strong>
+                  <span>
+                    {lastCall
+                      ? lastCall.latencyMs +
+                        " ms · " +
+                        (
+                          (usage?.input_tokens || 0) +
+                          (usage?.output_tokens || 0)
+                        ).toLocaleString() +
+                        " tokens"
+                      : "Score + Choice"}
+                  </span>
+                  <ChevronDown size={20} />
+                </summary>
+                <div className="call-destination">
+                  <code>POST api.typesafe.ai/v1/systemone</code>
+                  <span>{lastCall?.model || "jev-1.13.0"}</span>
                 </div>
-                <div>
-                  <span>Output tokens</span>
-                  <b>{usage?.output_tokens?.toLocaleString() ?? "N/A"}</b>
+                <div className="jev-metrics">
+                  <div>
+                    <span>Input tokens</span>
+                    <b>{usage?.input_tokens?.toLocaleString() ?? "N/A"}</b>
+                  </div>
+                  <div>
+                    <span>Output tokens</span>
+                    <b>{usage?.output_tokens?.toLocaleString() ?? "N/A"}</b>
+                  </div>
+                  <div>
+                    <span>Last response</span>
+                    <b>{lastCall ? lastCall.latencyMs + " ms" : "N/A"}</b>
+                  </div>
+                  <div>
+                    <span>Calls this session</span>
+                    <b>{calls}</b>
+                  </div>
                 </div>
-                <div>
-                  <span>Last response</span>
-                  <b>{lastCall ? lastCall.latencyMs + " ms" : "N/A"}</b>
+                <div className="call-schema">
+                  {page?.blocks.length || 0}
+                  {page?.truncated ? " / " + page.totalCandidates : ""} DOM
+                  blocks → Score 0–3 + Choice
                 </div>
-                <div>
-                  <span>Calls this session</span>
-                  <b>{calls}</b>
-                </div>
-              </div>
-              <div className="call-schema">
-                {page?.blocks.length || 0}
-                {page?.truncated ? " / " + page.totalCandidates : ""} DOM blocks
-                → Score 0–3 + Choice
-              </div>
-              {result && (
-                <div className="classification-results">
-                  {readingOrder(page!, result)
-                    .slice(0, 5)
-                    .map((b) => {
-                      const r = ranks.get(b.id);
-                      if (!r) return null;
-                      return (
-                        <button key={b.id} onClick={() => readBlock(b)}>
-                          <span>{b.text}</span>
-                          <b>{r.score.toFixed(1)} / 3</b>
-                          <small>{categoryLabel[r.category]}</small>
-                        </button>
-                      );
-                    })}
-                </div>
-              )}
-              {timeline.length > 0 && (
-                <div className="decision-trail">
-                  {timeline.slice(0, 4).map((row, i) => (
-                    <div className="trail-row" key={row.id + "-" + i}>
-                      <b className={"transition " + row.decision.toLowerCase()}>
-                        {row.decision}
-                      </b>
-                      <p>{row.text}</p>
-                      <span>
-                        {row.latencyMs > 0 ? row.latencyMs + " ms" : row.model}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <details className="request-details">
-                <summary>Request / response</summary>
-                <button onClick={exportTrace} disabled={!result}>
-                  <Download size={18} /> Export result
-                </button>
-                <pre>
-                  {JSON.stringify(
-                    result
-                      ? {
-                          request: result.request,
-                          response: {
-                            model: result.model,
-                            usage: result.usage,
-                            latencyMs: result.latencyMs,
-                            transition: result.transition,
-                            results: result.results,
-                          },
-                        }
-                      : page
-                        ? { task, dom: page.blocks }
-                        : "Read a page to inspect the call.",
-                    null,
-                    2,
-                  )}
-                </pre>
-              </details>
-            </details>
-            <section className="input-panel" aria-label="Page and task">
-              <div className="input-line">
-                <label htmlFor="url">Website</label>
-                <input
-                  id="url"
-                  type="text"
-                  placeholder="Paste a website URL"
-                  value={url}
-                  disabled={extension}
-                  onChange={(e) => setUrl(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") void readPage();
-                  }}
-                />
-                {extension && (
-                  <button onClick={captureTab} aria-label="Capture tab">
-                    <RefreshCw size={22} />
-                  </button>
+                {timeline.length > 0 && (
+                  <div className="decision-trail">
+                    {timeline.slice(0, 4).map((row, i) => (
+                      <div className="trail-row" key={row.id + "-" + i}>
+                        <b
+                          className={"transition " + row.decision.toLowerCase()}
+                        >
+                          {row.decision}
+                        </b>
+                        <p>{row.text}</p>
+                        <span>
+                          {row.latencyMs > 0
+                            ? row.latencyMs + " ms"
+                            : row.model}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 )}
-              </div>
-              <div className="task-line">
-                <label htmlFor="goal">Find</label>
-                <input
-                  id="goal"
-                  value={task}
-                  maxLength={500}
-                  placeholder="What do you want to read?"
-                  onChange={(e) => updateTask(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") void readPage();
+                <details className="request-details">
+                  <summary>Request / response</summary>
+                  <button onClick={exportTrace} disabled={!result}>
+                    <Download size={18} /> Export result
+                  </button>
+                  <pre>
+                    {JSON.stringify(
+                      result
+                        ? {
+                            request: result.request,
+                            response: {
+                              model: result.model,
+                              usage: result.usage,
+                              latencyMs: result.latencyMs,
+                              transition: result.transition,
+                              results: result.results,
+                            },
+                          }
+                        : page
+                          ? { task, dom: page.blocks }
+                          : "Read a page to inspect the call.",
+                      null,
+                      2,
+                    )}
+                  </pre>
+                </details>
+              </details>
+              <section className="input-panel" aria-label="Page and task">
+                <div className="input-line">
+                  <label htmlFor="url">Website</label>
+                  <input
+                    id="url"
+                    type="text"
+                    placeholder="Paste a website URL"
+                    value={url}
+                    disabled={extension}
+                    onChange={(e) => setUrl(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void readPage();
+                    }}
+                  />
+                  {extension && (
+                    <button onClick={captureTab} aria-label="Capture tab">
+                      <RefreshCw size={22} />
+                    </button>
+                  )}
+                </div>
+                <div className="task-line">
+                  <label htmlFor="goal">Find</label>
+                  <input
+                    id="goal"
+                    value={task}
+                    maxLength={500}
+                    placeholder="What do you want to read?"
+                    onChange={(e) => updateTask(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void readPage();
+                    }}
+                  />
+                  <button
+                    className="primary"
+                    onClick={() => void readPage()}
+                    disabled={
+                      busy !== null ||
+                      task.trim().length < 3 ||
+                      !url.trim() ||
+                      (!!frame && !frameReady)
+                    }
+                  >
+                    {busy ? (
+                      <LoaderCircle className="spin" size={20} />
+                    ) : (
+                      <ArrowRight size={20} />
+                    )}
+                    {busy === "load"
+                      ? "Loading page"
+                      : busy === "rank"
+                        ? "Jev is reading"
+                        : "Analyze page"}
+                  </button>
+                </div>
+              </section>
+              {!extension && (
+                <div className="under-input">
+                  <button disabled={!!busy} onClick={() => void loadExample()}>
+                    Museum demo
+                  </button>
+                  <button
+                    disabled={!!busy}
+                    onClick={() => {
+                      updateTask(
+                        "Learn how Braille works and how refreshable displays are used.",
+                      );
+                      void loadUrl("https://en.wikipedia.org/wiki/Braille");
+                    }}
+                  >
+                    Wikipedia
+                  </button>
+                  <button
+                    disabled={!!busy}
+                    onClick={() => {
+                      updateTask(
+                        "Understand how to use a Score and interpret its result.",
+                      );
+                      void loadUrl("https://docs.typesafe.ai/primitives/score");
+                    }}
+                  >
+                    Jev docs
+                  </button>
+                </div>
+              )}
+              {!extension && (
+                <section className="source-panel">
+                  <h2>Web page</h2>
+                  <div className="browser-frame">
+                    <div className="browser-bar">
+                      <span>
+                        {page ? new URL(page.url).hostname : "Your website"}
+                      </span>
+                      <button
+                        disabled={!page}
+                        aria-label="Open original page"
+                        onClick={() =>
+                          page &&
+                          window.open(page.url, "_blank", "noopener,noreferrer")
+                        }
+                      >
+                        <ArrowUpRight size={20} />
+                      </button>
+                    </div>
+                    {frame ? (
+                      <iframe
+                        data-token={frame.token}
+                        ref={iframe}
+                        title="Interactive source page"
+                        sandbox="allow-scripts"
+                        srcDoc={frame.html}
+                      />
+                    ) : (
+                      <div className="empty-source">
+                        Paste a website above to open it here.
+                      </div>
+                    )}
+                  </div>
+                  {page?.source === "example" && (
+                    <details className="demo-controls">
+                      <summary>Test page changes</summary>
+                      <div className="live-controls">
+                        <button
+                          onClick={() => sendUpdate("noise")}
+                          disabled={!!busy}
+                        >
+                          Change offer
+                        </button>
+                        <button
+                          onClick={() => sendUpdate("entrance")}
+                          disabled={!!busy}
+                        >
+                          Close entrance
+                        </button>
+                        <button
+                          onClick={() => sendUpdate("hours")}
+                          disabled={!!busy}
+                        >
+                          Change hours
+                        </button>
+                        <button
+                          onClick={() => void playUpdates()}
+                          disabled={!result && !playing}
+                        >
+                          <Play size={18} />
+                          {playing ? "Stop demo" : "Run demo"}
+                        </button>
+                      </div>
+                    </details>
+                  )}
+                </section>
+              )}
+            </section>
+            <section
+              className="read-tab"
+              id="read-panel"
+              role="tabpanel"
+              aria-labelledby="read-tab"
+              hidden={activeTab !== "read"}
+            >
+              <section className="output-section" aria-label="Braille output">
+                <div className="output-heading">
+                  <h2>Braille display</h2>
+                  <button
+                    className="hardware-link"
+                    onClick={() => setModal("hardware")}
+                  >
+                    Compatible devices
+                  </button>
+                </div>
+                <BrailleDevice
+                  dots={dots}
+                  cells={cells}
+                  line={line}
+                  page={Math.floor(cellOffset / cells) + 1}
+                  pages={Math.max(1, Math.ceil(allDots.length / cells))}
+                  interrupted={!!saved}
+                  canPanLeft={cellOffset > 0 || offset > 0}
+                  canPanRight={
+                    cellOffset + cells < allDots.length ||
+                    offset + cells < chars.length
+                  }
+                  onLeft={() =>
+                    cellOffset > 0
+                      ? setCellOffset(Math.max(0, cellOffset - cells))
+                      : pan(-1)
+                  }
+                  onRight={() =>
+                    cellOffset + cells < allDots.length
+                      ? setCellOffset(cellOffset + cells)
+                      : pan(1)
+                  }
+                  onPrevious={() => {
+                    if (ordered[selectedIndex - 1])
+                      readBlock(ordered[selectedIndex - 1]);
+                  }}
+                  onNext={() => {
+                    if (ordered[selectedIndex + 1])
+                      readBlock(ordered[selectedIndex + 1]);
+                  }}
+                  hasPrevious={selectedIndex > 0}
+                  hasNext={selectedIndex < ordered.length - 1}
+                  onResume={saved ? resume : undefined}
+                  onCells={(value) => {
+                    setCells(value);
+                    setCellOffset(0);
                   }}
                 />
-                <button
-                  className="primary"
-                  onClick={() => void readPage()}
-                  disabled={
-                    busy !== null ||
-                    task.trim().length < 3 ||
-                    !url.trim() ||
-                    (!!frame && !frameReady)
-                  }
-                >
-                  {busy ? (
-                    <LoaderCircle className="spin" size={20} />
-                  ) : (
-                    <ArrowRight size={20} />
-                  )}
-                  {busy === "load"
-                    ? "Loading page"
-                    : busy === "rank"
-                      ? "Jev is reading"
-                      : "Read page"}
-                </button>
-              </div>
-            </section>
-            {!extension && (
-              <div className="under-input">
-                <button disabled={!!busy} onClick={() => void loadExample()}>
-                  Museum demo
-                </button>
-                <button
-                  disabled={!!busy}
-                  onClick={() => {
-                    updateTask(
-                      "Learn how Braille works and how refreshable displays are used.",
-                    );
-                    void loadUrl("https://en.wikipedia.org/wiki/Braille");
-                  }}
-                >
-                  Wikipedia
-                </button>
-                <button
-                  disabled={!!busy}
-                  onClick={() => {
-                    updateTask(
-                      "Understand how to use a Score and interpret its result.",
-                    );
-                    void loadUrl("https://docs.typesafe.ai/primitives/score");
-                  }}
-                >
-                  Jev docs
-                </button>
-              </div>
-            )}
-            {!extension && (
-              <section className="source-panel">
-                <h2>Web page</h2>
-                <div className="browser-frame">
-                  <div className="browser-bar">
+              </section>
+              <section className="reading-panel">
+                <h2>Reading</h2>
+                <div className="text-output">
+                  <textarea
+                    id="reading-output"
+                    ref={output}
+                    readOnly
+                    value={line}
+                    aria-label="Stable reading output"
+                    aria-live="polite"
+                    aria-atomic="true"
+                  />
+                  <div className="reader-buttons">
+                    <button
+                      onClick={() => {
+                        if (ordered[selectedIndex - 1])
+                          readBlock(ordered[selectedIndex - 1]);
+                      }}
+                      disabled={selectedIndex <= 0}
+                      aria-label="Previous block"
+                    >
+                      <ArrowLeft size={22} />
+                    </button>
                     <span>
-                      {page ? new URL(page.url).hostname : "Your website"}
+                      {selectedIndex < 0
+                        ? "Selection"
+                        : selectedIndex + 1 + " / " + ordered.length}
                     </span>
                     <button
-                      disabled={!page}
-                      aria-label="Open original page"
-                      onClick={() =>
-                        page &&
-                        window.open(page.url, "_blank", "noopener,noreferrer")
-                      }
+                      onClick={() => {
+                        if (ordered[selectedIndex + 1])
+                          readBlock(ordered[selectedIndex + 1]);
+                      }}
+                      disabled={selectedIndex >= ordered.length - 1}
+                      aria-label="Next block"
                     >
-                      <ArrowUpRight size={20} />
+                      <ArrowRight size={22} />
+                    </button>
+                    <button
+                      className="listen"
+                      disabled={!page}
+                      onClick={() => (speaking ? stopSpeech() : speak())}
+                    >
+                      {speaking ? <VolumeX size={22} /> : <Volume2 size={22} />}{" "}
+                      {speaking ? "Stop" : "Listen"}
                     </button>
                   </div>
-                  {frame ? (
-                    <iframe
-                      data-token={frame.token}
-                      ref={iframe}
-                      title="Interactive source page"
-                      sandbox="allow-scripts"
-                      srcDoc={frame.html}
-                    />
-                  ) : (
-                    <div className="empty-source">
-                      Paste a website above to open it here.
-                    </div>
-                  )}
                 </div>
-                {page?.source === "example" && (
-                  <details className="demo-controls">
-                    <summary>Test page changes</summary>
-                    <div className="live-controls">
-                      <button
-                        onClick={() => sendUpdate("noise")}
-                        disabled={!!busy}
-                      >
-                        Change offer
-                      </button>
-                      <button
-                        onClick={() => sendUpdate("entrance")}
-                        disabled={!!busy}
-                      >
-                        Close entrance
-                      </button>
-                      <button
-                        onClick={() => sendUpdate("hours")}
-                        disabled={!!busy}
-                      >
-                        Change hours
-                      </button>
-                      <button
-                        onClick={() => void playUpdates()}
-                        disabled={!result && !playing}
-                      >
-                        <Play size={18} />
-                        {playing ? "Stop demo" : "Run demo"}
-                      </button>
-                    </div>
-                  </details>
-                )}
-              </section>
-            )}
-          </div>
-          <div className="device-column">
-            <section className="output-section" aria-label="Braille output">
-              <div className="output-heading">
-                <h2>Braille display</h2>
-                <button
-                  className="hardware-link"
-                  onClick={() => setModal("hardware")}
-                >
-                  Compatible devices
-                </button>
-              </div>
-              <BrailleDevice
-                dots={dots}
-                cells={cells}
-                line={line}
-                page={Math.floor(cellOffset / cells) + 1}
-                pages={Math.max(1, Math.ceil(allDots.length / cells))}
-                interrupted={!!saved}
-                canPanLeft={cellOffset > 0 || offset > 0}
-                canPanRight={
-                  cellOffset + cells < allDots.length ||
-                  offset + cells < chars.length
-                }
-                onLeft={() =>
-                  cellOffset > 0
-                    ? setCellOffset(Math.max(0, cellOffset - cells))
-                    : pan(-1)
-                }
-                onRight={() =>
-                  cellOffset + cells < allDots.length
-                    ? setCellOffset(cellOffset + cells)
-                    : pan(1)
-                }
-                onPrevious={() => {
-                  if (ordered[selectedIndex - 1])
-                    readBlock(ordered[selectedIndex - 1]);
-                }}
-                onNext={() => {
-                  if (ordered[selectedIndex + 1])
-                    readBlock(ordered[selectedIndex + 1]);
-                }}
-                hasPrevious={selectedIndex > 0}
-                hasNext={selectedIndex < ordered.length - 1}
-                onResume={saved ? resume : undefined}
-                onCells={(value) => {
-                  setCells(value);
-                  setCellOffset(0);
-                }}
-              />
-            </section>
-            <section className="reading-panel">
-              <h2>Reading</h2>
-              <label className="sr-only" htmlFor="block-picker">
-                Reading block
-              </label>
-              <select
-                className="reading-picker"
-                id="block-picker"
-                value={current?.id || ""}
-                onChange={(e) => {
-                  const b = page?.blocks.find((b) => b.id === e.target.value);
-                  if (b) readBlock(b);
-                }}
-              >
-                {current && !ordered.some((b) => b.id === current.id) && (
-                  <option value={current.id}>
-                    {current.text.slice(0, 100)}
-                  </option>
-                )}
-                {ordered.map((b, i) => (
-                  <option key={b.id} value={b.id}>
-                    {i + 1}. {b.text.slice(0, 100)}
-                  </option>
-                ))}
-              </select>
-              <div className="text-output">
-                <textarea
-                  id="reading-output"
-                  ref={output}
-                  readOnly
-                  value={line}
-                  aria-label="Stable reading output"
-                  aria-live="polite"
-                  aria-atomic="true"
-                />
-                <div className="reader-buttons">
-                  <button
-                    onClick={() => {
-                      if (ordered[selectedIndex - 1])
-                        readBlock(ordered[selectedIndex - 1]);
-                    }}
-                    disabled={selectedIndex <= 0}
-                    aria-label="Previous block"
-                  >
-                    <ArrowLeft size={22} />
+                <div className="reading-position">
+                  <button onClick={() => pan(-1)} disabled={offset === 0}>
+                    Previous line
                   </button>
                   <span>
-                    {selectedIndex < 0
-                      ? "Selection"
-                      : selectedIndex + 1 + " / " + ordered.length}
+                    {offset + 1}–{Math.min(offset + cells, chars.length)}
                   </span>
                   <button
-                    onClick={() => {
-                      if (ordered[selectedIndex + 1])
-                        readBlock(ordered[selectedIndex + 1]);
-                    }}
-                    disabled={selectedIndex >= ordered.length - 1}
-                    aria-label="Next block"
+                    onClick={() => pan(1)}
+                    disabled={offset + cells >= chars.length}
                   >
-                    <ArrowRight size={22} />
-                  </button>
-                  <button
-                    className="listen"
-                    disabled={!page}
-                    onClick={() => (speaking ? stopSpeech() : speak())}
-                  >
-                    {speaking ? <VolumeX size={22} /> : <Volume2 size={22} />}{" "}
-                    {speaking ? "Stop" : "Listen"}
+                    Next line
                   </button>
                 </div>
-              </div>
-              <div className="reading-position">
-                <button onClick={() => pan(-1)} disabled={offset === 0}>
-                  Previous line
-                </button>
-                <span>
-                  {offset + 1}–{Math.min(offset + cells, chars.length)}
-                </span>
-                <button
-                  onClick={() => pan(1)}
-                  disabled={offset + cells >= chars.length}
-                >
-                  Next line
-                </button>
-              </div>
-              {saved && (
-                <button className="resume-button" onClick={resume}>
-                  <ArrowLeft size={20} /> Resume reading
-                </button>
-              )}
-              {historical && !saved && (
-                <p className="historical-note">
-                  Saved text. Select a block for its latest version.
-                </p>
-              )}
-              {extension && current && (
-                <button
-                  className="source-link"
-                  onClick={() =>
-                    chrome.runtime.sendMessage({
-                      type: "locate",
-                      id: current.id,
-                      text: current.text,
-                    })
-                  }
-                >
-                  Go to source <ArrowUpRight size={18} />
-                </button>
-              )}
+                {saved && (
+                  <button className="resume-button" onClick={resume}>
+                    <ArrowLeft size={20} /> Resume reading
+                  </button>
+                )}
+                {historical && !saved && (
+                  <p className="historical-note">
+                    Saved text. Select a block for its latest version.
+                  </p>
+                )}
+                {extension && current && (
+                  <button
+                    className="source-link"
+                    onClick={() =>
+                      chrome.runtime.sendMessage({
+                        type: "locate",
+                        id: current.id,
+                        text: current.text,
+                      })
+                    }
+                  >
+                    Go to source <ArrowUpRight size={18} />
+                  </button>
+                )}
+              </section>
             </section>
           </div>
+          <ReadingQueue
+            blocks={ordered}
+            results={result?.snapshotId === page?.id ? result : null}
+            currentId={current?.id}
+            busy={busy === "rank"}
+            pending={!result || result.snapshotId !== page?.id}
+            onSelect={(block) => {
+              readBlock(block);
+              setActiveTab("read");
+            }}
+          />
         </div>
         <div className="live-status sr-only" role="status" aria-live="polite">
           {status}

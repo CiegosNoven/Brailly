@@ -1,6 +1,6 @@
 # Brailly
 
-Brailly reads a website's DOM, asks Jev which blocks matter for your task, and sends the original text to a stable reading output. The screen shows the webpage beside Jev's scores, API usage and a Braille device preview.
+Brailly reads a website's DOM, asks Jev which blocks matter for your task, and sends the original text to a stable reading output. Analyze shows the webpage and API usage. Read shows the Braille device. Both tabs share a ranked reading queue.
 
 [Open Brailly](https://brailly-jev.vercel.app) · [Demo walkthrough](docs/DEMO.md) · [Device connections](docs/HARDWARE.md)
 
