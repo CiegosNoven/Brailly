@@ -1,0 +1,23 @@
+import 'dotenv/config';
+import express from 'express';
+import {createServer as createViteServer} from 'vite';
+import {spawn, type ChildProcessWithoutNullStreams} from 'node:child_process';
+import {createInterface} from 'node:readline';
+import {z} from 'zod';
+import {classify} from './jev';
+import {webApi} from './web-api';
+const app=express();const port=Number(process.env.PORT||5173);
+app.use((req,res,next)=>{const host=req.hostname;if(!['localhost','127.0.0.1','::1','[::1]'].includes(host))return res.status(403).json({error:'Local demo only'});const origin=req.get('origin');if(origin&&!['http://localhost:'+port,'http://127.0.0.1:'+port].includes(origin))return res.status(403).json({error:'Origin not allowed'});next();});
+app.use('/api',webApi);
+app.use(express.json({limit:'32kb'}));
+let bridge:ChildProcessWithoutNullStreams|null=null;let hardware:{connected:boolean;message:string;columns?:number;driver?:string}={connected:false,message:'No device connected'};
+app.get('/api/status',(_req,res)=>res.json({jev:!!process.env.TYPESAFE_API_KEY,model:process.env.TYPESAFE_MODEL||'jev-1.13.0',hardware}));
+const input=z.object({task:z.string().max(1000),snapshot:z.unknown(),event:z.object({text:z.string().min(1).max(2000),blockId:z.string().max(100),revision:z.number()}),context:z.unknown()});
+let busy=false;
+app.post('/api/classify',async(req,res)=>{const parsed=input.safeParse(req.body);if(!parsed.success)return res.status(400).json({error:'Invalid request'});if(!process.env.TYPESAFE_API_KEY)return res.status(503).json({error:'Add TYPESAFE_API_KEY to .env to enable live Jev.'});if(busy)return res.status(429).json({error:'One evaluation is already active; retained for review.'});busy=true;try{res.json(await classify(parsed.data,process.env.TYPESAFE_API_KEY,process.env.TYPESAFE_MODEL||'jev-1.13.0'));}catch(error){res.status(502).json({error:error instanceof Error&&error.name==='TimeoutError'?'Jev timed out; retained for review.':'Jev request failed or response was invalid; retained for review.'});}finally{busy=false;}});
+app.post('/api/hardware/connect',(_req,res)=>{if(bridge)return res.json(hardware);hardware={connected:false,message:'Connecting to local BRLTTY…'};const child=spawn(process.env.BRLAPI_PYTHON||'python3',['hardware/brltty_bridge.py'],{stdio:'pipe'});bridge=child;const lines=createInterface({input:child.stdout});lines.on('line',line=>{try{const data=JSON.parse(line);if(data.type==='status')hardware=data;}catch{hardware={connected:false,message:'Invalid bridge response'};}});child.on('error',()=>{hardware={connected:false,message:'Python bridge unavailable'};bridge=null;});child.on('exit',()=>{bridge=null;hardware={connected:false,message:hardware.connected?'Display disconnected':hardware.message};});child.stderr.on('data',()=>{});res.json(hardware);});
+app.post('/api/hardware/disconnect',(_req,res)=>{bridge?.kill();bridge=null;hardware={connected:false,message:'Disconnected'};res.json(hardware);});
+app.post('/api/hardware/write',(req,res)=>{const p=z.object({text:z.string().max(160)}).safeParse(req.body);if(!p.success)return res.status(400).json({error:'Invalid output'});if(!bridge||!hardware.connected)return res.status(409).json({error:'No display connected'});bridge.stdin.write(JSON.stringify({type:'write',text:p.data.text})+'\n');res.json({queued:true});});
+if(process.env.NODE_ENV==='production')app.use(express.static('dist'));else {const vite=await createViteServer({server:{middlewareMode:true},appType:'spa'});app.use(vite.middlewares);}
+app.listen(port,'127.0.0.1',()=>console.log(`Reflow is ready at http://127.0.0.1:${port}`));
+process.on('SIGTERM',()=>{bridge?.kill();process.exit(0);});process.on('SIGINT',()=>{bridge?.kill();process.exit(0);});

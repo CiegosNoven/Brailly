@@ -1,0 +1,10 @@
+import {build} from 'esbuild';
+import {mkdir,readFile,writeFile,readdir} from 'node:fs/promises';
+import {zipSync} from 'fflate';
+const folder='extension-dist';await mkdir(folder,{recursive:true});
+await build({entryPoints:['extension/background.ts','extension/content.ts'],outdir:folder,bundle:true,format:'iife',target:'chrome120',minify:true});
+await build({entryPoints:['src/main.tsx'],outfile:folder+'/app.js',bundle:true,format:'iife',target:'chrome120',minify:true,define:{'process.env.NODE_ENV':'"production"'},loader:{'.css':'css'}});
+await writeFile(folder+'/index.html','<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Reflow reader</title><link rel="stylesheet" href="app.css"></head><body><div id="root"></div><script src="app.js"></script></body></html>');
+await writeFile(folder+'/manifest.json',JSON.stringify({manifest_version:3,name:'Reflow — web to Braille',version:'0.2.0',description:'Classify the active page with Jev and read its exact content in a stable, accessible output.',permissions:['activeTab','scripting','storage','sidePanel'],host_permissions:['https://reflow-jev.vercel.app/*'],action:{default_title:'Read this page with Reflow'},background:{service_worker:'background.js'},side_panel:{default_path:'index.html'},content_security_policy:{extension_pages:"script-src 'self'; object-src 'none'; connect-src https://reflow-jev.vercel.app; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;"}},null,2));
+await mkdir('public',{recursive:true});const files={};for(const name of await readdir(folder))files[name]=new Uint8Array(await readFile(folder+'/'+name));await writeFile('public/reflow-extension.zip',zipSync(files));
+console.log('Extension built: public/reflow-extension.zip');
