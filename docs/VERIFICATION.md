@@ -1,10 +1,11 @@
 # Brailly verification
 
-Local checks: 25 unit tests and 8 browser tests pass. Production build passes. Browser tests use explicit test-only model responses; live Jev checks are separate.
+Local checks: 43 unit tests and 14 browser tests pass. Production build passes. Browser tests use explicit test-only model responses; live Jev checks are separate.
 
 | Check | Result | Evidence |
 | --- | --- | --- |
 | Real pages | PASS | TypeSafe Score, Wikipedia Braille and W3C accessibility pages loaded with source styling. A W3C link imported its Components page. |
+| Dynamic real sites | PASS | Rendered Achla prices and two public Dayton emergency widgets captured; full 60-block live classifications and six labelled mutation replays passed. Actual extension updates and hospital refresh were exercised. See REAL-SITES.md for scope and evidence. |
 | Live classification | PASS | Actual Jev responses supplied Score, Choice, latency and input/output token counts. An offer change returned DEFER; an entrance closure returned INTERRUPT. |
 | Retained reading | PASS | Browser regression tests cover nonzero line position, interruption, resume and obsolete response rejection. |
 | Controls | PASS | Analyze page, keyboard tabs, queue selection, source selection, previous/next block, line panning, model selection, cell inspection, link navigation, dialog dismissal and result export have working handlers; core interactions were exercised in Chrome. |
@@ -15,4 +16,4 @@ Local checks: 25 unit tests and 8 browser tests pass. Production build passes. B
 | Honest content | PASS | API usage comes from real responses. One Simulation label identifies the device preview; no physical connection or certification is claimed. |
 | Design direction | PASS | User-selected sage palette, larger type, Analyze/Read tabs with a shared queue, original search-and-Braille logo. See DESIGN.md for decisions. |
 
-The extension loaded in a real Chrome profile and captured, recaptured and focused source text. Automation used a temporary localhost permission; the native toolbar permission grant remains unverified. Physical hardware and user validation remain pending.
+The extension loaded in a real Chrome profile and captured, recaptured and focused source text. A later live Achla run delivered a natural source update automatically. Automation used temporary permissions; the native toolbar permission grant remains unverified. Cross-origin frames are outside extension capture; the URL importer fetches bounded public embeds. Physical hardware and user validation remain pending.

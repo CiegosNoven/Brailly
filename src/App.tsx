@@ -36,6 +36,12 @@ import { toBraille } from "./braille";
 import { frameDocument } from "./frame";
 import BrailleDevice from "./BrailleDevice";
 import ReadingQueue from "./ReadingQueue";
+import {
+  snapshotSignature,
+  sourceChanges,
+  onlyCountdownTicks,
+  blockSignature,
+} from "../shared/live";
 const extension = typeof chrome !== "undefined" && !!chrome.runtime?.id;
 const API = extension ? "https://brailly-jev.vercel.app" : "";
 const categoryLabel = {
@@ -104,15 +110,45 @@ export default function App() {
   const abort = useRef<AbortController | null>(null);
   const pageRef = useRef(page);
   pageRef.current = page;
+  const baseline = useRef<PageSnapshot | null>(null);
+  const lastObserved = useRef<PageSnapshot | null>(null);
+  const refreshingPreview = useRef<{token: string; page: PageSnapshot} | null>(null);
+  const sourceSession = useRef(0);
+  const loadGeneration = useRef(0);
+  const loadAbort = useRef<AbortController | null>(null);
+  const loadingSource = useRef(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const pendingUpdate = useRef<PageSnapshot | null>(null);
+  const ranking = useRef(false);
+  const nextRankAt = useRef(0);
+  const updateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const processPending = useRef<() => void>(() => {});
+  const receiveSnapshot = useRef<(snapshot: PageSnapshot) => void>(() => {});
+  const [updateSummary, setUpdateSummary] = useState("");
   useEffect(() => {
     return () => {
+      initialized.current = false;
       abort.current?.abort();
+      loadAbort.current?.abort();
+      if (updateTimer.current) clearTimeout(updateTimer.current);
       speechSynthesis?.cancel();
     };
   }, []);
   function acceptPage(p: PageSnapshot) {
+    sourceSession.current++;
+    refreshingPreview.current = null;
+    setRefreshing(false);
     epoch.current++;
     abort.current?.abort();
+    pendingUpdate.current = null;
+    ranking.current = false;
+    baseline.current = p;
+    lastObserved.current = p;
+    nextRankAt.current = 0;
+    if (updateTimer.current) clearTimeout(updateTimer.current);
+    pageRef.current = p;
+    setUrl(p.url);
+    setUpdateSummary("");
     setPage(p);
     setResult(null);
     setFrameReady(false);
@@ -144,7 +180,7 @@ export default function App() {
     ) => {
       if (area !== "session") return;
       if (changes.snapshot?.newValue)
-        acceptPage(changes.snapshot.newValue as PageSnapshot);
+        receiveSnapshot.current(changes.snapshot.newValue as PageSnapshot);
       if (changes.captureError)
         setError(String(changes.captureError.newValue || ""));
       if (changes.pageChanged) setChanged(!!changes.pageChanged.newValue);
@@ -153,10 +189,24 @@ export default function App() {
     return () => chrome.storage.onChanged.removeListener(listener);
   }, []);
   async function loadExample(path = "/example.html", classify = false) {
+    const generation = ++loadGeneration.current;
+    loadingSource.current = true;
+    sourceSession.current++;
+    pendingUpdate.current = null;
+    if (updateTimer.current) clearTimeout(updateTimer.current);
+    loadAbort.current?.abort();
+    const controller = new AbortController();
+    loadAbort.current = controller;
+    epoch.current++;
+    abort.current?.abort();
+    ranking.current = false;
     setBusy("load");
     setError("");
     try {
-      const html = await fetch(API + path).then((r) => r.text());
+      const html = await fetch(API + path, { signal: controller.signal }).then(
+        (r) => r.text(),
+      );
+      if (generation !== loadGeneration.current) return null;
       const doc = new DOMParser().parseFromString(html, "text/html");
       const p = extractDocument(doc, (API || location.origin) + path);
       p.source = "example";
@@ -165,11 +215,18 @@ export default function App() {
       acceptPage(p);
       setUrl(p.url);
       return p;
-    } catch {
-      setError("Could not load the sample website.");
+    } catch (error) {
+      if (
+        generation === loadGeneration.current &&
+        !(error instanceof Error && error.name === "AbortError")
+      )
+        setError("Could not load the sample website.");
       return null;
     } finally {
-      setBusy(null);
+      if (generation === loadGeneration.current) {
+        loadingSource.current = false;
+        setBusy(null);
+      }
     }
   }
   async function loadUrl(nextUrl?: string) {
@@ -184,13 +241,19 @@ export default function App() {
         return;
       }
     } catch {}
+    const generation = ++loadGeneration.current;
+    loadingSource.current = true;
+    sourceSession.current++;
+    ranking.current = false;
+    pendingUpdate.current = null;
+    if (updateTimer.current) clearTimeout(updateTimer.current);
+    loadAbort.current?.abort();
     setBusy("load");
     setError("");
     epoch.current++;
     abort.current?.abort();
     const controller = new AbortController();
-    abort.current = controller;
-    const token = epoch.current;
+    loadAbort.current = controller;
     try {
       const response = await fetch(API + "/api/page", {
         method: "POST",
@@ -202,18 +265,28 @@ export default function App() {
       });
       const p = await response.json();
       if (!response.ok) throw new Error(p.error);
-      if (epoch.current !== token) return;
+      if (generation !== loadGeneration.current) return;
       navigateRank.current = !!nextUrl && auto;
       acceptPage(p);
       setUrl(p.url);
     } catch (e) {
-      if (e instanceof Error && e.name !== "AbortError") setError(e.message);
+      if (
+        generation === loadGeneration.current &&
+        e instanceof Error &&
+        e.name !== "AbortError"
+      )
+        setError(e.message);
     } finally {
-      setBusy(null);
+      if (generation === loadGeneration.current) {
+        loadingSource.current = false;
+        setBusy(null);
+      }
     }
   }
   async function rank(target = page, context?: ReadContext) {
     if (!target) return;
+    ranking.current = true;
+    nextRankAt.current = Date.now() + 5000;
     const token = ++epoch.current;
     abort.current?.abort();
     const controller = new AbortController();
@@ -235,14 +308,21 @@ export default function App() {
       if (!r.ok) throw new Error(data.error);
       setLastCall(data);
       if (token !== epoch.current) return;
+      if (
+        pageRef.current &&
+        snapshotSignature(pageRef.current) !== snapshotSignature(target) &&
+        !onlyCountdownTicks(target, pageRef.current)
+      )
+        return;
+      baseline.current = target;
       setResult(data);
       const order = readingOrder(target, data);
       if (context) {
         const previous = new Map(
-          context.previousBlocks.map((b) => [b.id, b.text]),
+          context.previousBlocks.map((b) => [b.id, blockSignature(b)]),
         );
         const changedBlocks = order.filter(
-          (b) => previous.get(b.id) !== b.text,
+          (b) => previous.get(b.id) !== blockSignature(b),
         );
         const decision = data.transition?.choice || "NONE";
         setTimeline((rows) => [
@@ -254,7 +334,7 @@ export default function App() {
             model: data.model,
             text:
               changedBlocks.map((b) => b.text).join(" / ") ||
-              "Source blocks removed.",
+              "Previously captured content is no longer in this capture.",
             confidence: data.transition?.confidence,
           },
           ...rows,
@@ -324,7 +404,11 @@ export default function App() {
         );
       }
     } finally {
-      if (token === epoch.current) setBusy(null);
+      if (token === epoch.current) {
+        ranking.current = false;
+        setBusy(null);
+        processPending.current();
+      }
     }
   }
   useEffect(() => {
@@ -336,6 +420,9 @@ export default function App() {
   function updateTask(value: string) {
     epoch.current++;
     abort.current?.abort();
+    ranking.current = false;
+    pendingUpdate.current = null;
+    if (updateTimer.current) clearTimeout(updateTimer.current);
     setBusy(null);
     setTask(value);
     setResult(null);
@@ -351,10 +438,65 @@ export default function App() {
   const allDots = toBraille(line);
   const dots = allDots.slice(cellOffset, cellOffset + cells);
   const ranks = new Map(result?.results.map((r) => [r.id, r]) || []);
-  function readBlock(block: DomBlock) {
+  processPending.current = () => {
+    if (ranking.current || !pendingUpdate.current) return;
+    if (updateTimer.current) clearTimeout(updateTimer.current);
+    const wait = nextRankAt.current - Date.now();
+    if (wait > 0) {
+      updateTimer.current = setTimeout(() => processPending.current(), wait);
+      return;
+    }
+    const next = pendingUpdate.current;
+    pendingUpdate.current = null;
+    const previous = baseline.current;
+    void rank(
+      next,
+      previous && current
+        ? { current, offset, previousBlocks: previous.blocks }
+        : undefined,
+    );
+  };
+  receiveSnapshot.current = (incoming) => {
+    if (loadingSource.current) return;
+    const previous = pageRef.current;
+    if (!previous || incoming.url !== previous.url) {
+      acceptPage(incoming);
+      return;
+    }
+    const observed = lastObserved.current || previous;
+    lastObserved.current = incoming;
+    if (snapshotSignature(previous) === snapshotSignature(incoming)) return;
+    if (onlyCountdownTicks(observed, incoming)) return;
+    const next = {
+      ...incoming,
+      previewHtml: incoming.previewHtml || previous.previewHtml,
+    };
+    const changes = sourceChanges(previous, next);
+    pageRef.current = next;
+    setPage(next);
+    setChanged(false);
+    setUpdateSummary(
+      `${changes.changed.length} changed · ${changes.added.length} added · ${changes.removed.length} no longer captured`,
+    );
+    setStatus("Page changed. Your reading line is held while Jev evaluates.");
+    pendingUpdate.current = next;
+    processPending.current();
+  };
+  function cancelReadingRequest() {
     epoch.current++;
     abort.current?.abort();
+    ranking.current = false;
+    if (
+      pageRef.current &&
+      baseline.current &&
+      snapshotSignature(pageRef.current) !== snapshotSignature(baseline.current)
+    )
+      pendingUpdate.current = pageRef.current;
     setBusy(null);
+    setTimeout(() => processPending.current(), 0);
+  }
+  function readBlock(block: DomBlock) {
+    cancelReadingRequest();
     setReading(block);
     setSaved(null);
     setSelected(block.id);
@@ -364,9 +506,7 @@ export default function App() {
     if (speaking) speak(block.text);
   }
   function pan(direction: number) {
-    epoch.current++;
-    abort.current?.abort();
-    setBusy(null);
+    cancelReadingRequest();
     setOffset((o) =>
       Math.min(
         Math.max(0, o + direction * cells),
@@ -403,6 +543,45 @@ export default function App() {
       setError("Open a web page and click the Brailly extension icon first.");
     }
   }
+  async function refreshSource() {
+    const source = pageRef.current;
+    if (!source || refreshing) return;
+    setRefreshing(true);
+    const navigation = source.url;
+    const sourceToken = sourceSession.current;
+    try {
+      const response = await fetch(API + "/api/page", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: navigation }),
+      });
+      const next = await response.json();
+      if (!response.ok) throw new Error(next.error);
+      if (
+        sourceToken !== sourceSession.current ||
+        pageRef.current?.url !== navigation
+      )
+        return;
+      if (next.previewHtml) {
+        const token = crypto.randomUUID();
+        refreshingPreview.current = {token, page: next};
+        setFrame({
+          html: frameDocument(next.previewHtml, next.url, token),
+          token,
+        });
+      } else receiveSnapshot.current(next);
+      setStatus("Source refreshed. Your reading position is held.");
+    } catch (error) {
+      if (sourceToken !== sourceSession.current) return;
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Could not refresh the source.",
+      );
+    } finally {
+      setRefreshing(false);
+    }
+  }
   function exportTrace() {
     if (!result) return;
     const blob = new Blob(
@@ -418,9 +597,7 @@ export default function App() {
   }
   function resume() {
     if (!saved) return;
-    epoch.current++;
-    abort.current?.abort();
-    setBusy(null);
+    cancelReadingRequest();
     setReading(saved.block);
     setSelected(saved.block.id);
     setOffset(saved.offset);
@@ -468,14 +645,23 @@ export default function App() {
     } else if (m.type === "snapshot") {
       const previous = pageRef.current;
       const incoming = m.page as PageSnapshot;
-      if (!incoming?.blocks?.length) return;
-      const next = { ...incoming, previewHtml: previous?.previewHtml };
+      if (!Array.isArray(incoming?.blocks)) return;
+      const refresh = refreshingPreview.current;
+      const next = { ...incoming, previewHtml: refresh?.token === frame.token ? refresh.page.previewHtml : previous?.previewHtml };
       if (m.version === 1) {
         setFrameReady(true);
+        if (refresh?.token === frame.token) {
+          refreshingPreview.current = null;
+          receiveSnapshot.current(next);
+          return;
+        }
         epoch.current++;
         abort.current?.abort();
         setBusy(null);
         setPage(next);
+        pageRef.current = next;
+        baseline.current = next;
+        lastObserved.current = next;
         setResult(null);
         if (!current || !next.blocks.some((b) => b.id === current.id)) {
           setReading(next.blocks[0]);
@@ -488,25 +674,7 @@ export default function App() {
         }
         return;
       }
-      setPage(next);
-      setChanged(false);
-      setStatus("DOM changed. Your reading line is held while Jev evaluates.");
-      if (previous && current && auto)
-        void rank(next, { current, offset, previousBlocks: previous.blocks });
-      else {
-        setResult(null);
-        setTimeline((rows) => [
-          {
-            id: next.id,
-            decision: "PENDING",
-            at: new Date().toISOString(),
-            latencyMs: 0,
-            model: "Runtime",
-            text: "The page changed. Classify to evaluate the update.",
-          },
-          ...rows,
-        ]);
-      }
+      receiveSnapshot.current(next);
     }
   };
   useEffect(() => {
@@ -863,6 +1031,18 @@ export default function App() {
                         {page ? new URL(page.url).hostname : "Your website"}
                       </span>
                       <button
+                        disabled={
+                          !page || refreshing || page.source === "example"
+                        }
+                        aria-label="Refresh source page"
+                        onClick={() => void refreshSource()}
+                      >
+                        <RefreshCw
+                          size={20}
+                          className={refreshing ? "spin" : undefined}
+                        />
+                      </button>
+                      <button
                         disabled={!page}
                         aria-label="Open original page"
                         onClick={() =>
@@ -951,16 +1131,18 @@ export default function App() {
                     cellOffset + cells < allDots.length ||
                     offset + cells < chars.length
                   }
-                  onLeft={() =>
-                    cellOffset > 0
-                      ? setCellOffset(Math.max(0, cellOffset - cells))
-                      : pan(-1)
-                  }
-                  onRight={() =>
-                    cellOffset + cells < allDots.length
-                      ? setCellOffset(cellOffset + cells)
-                      : pan(1)
-                  }
+                  onLeft={() => {
+                    cancelReadingRequest();
+                    if (cellOffset > 0)
+                      setCellOffset(Math.max(0, cellOffset - cells));
+                    else pan(-1);
+                  }}
+                  onRight={() => {
+                    cancelReadingRequest();
+                    if (cellOffset + cells < allDots.length)
+                      setCellOffset(cellOffset + cells);
+                    else pan(1);
+                  }}
                   onPrevious={() => {
                     if (ordered[selectedIndex - 1])
                       readBlock(ordered[selectedIndex - 1]);
@@ -973,6 +1155,7 @@ export default function App() {
                   hasNext={selectedIndex < ordered.length - 1}
                   onResume={saved ? resume : undefined}
                   onCells={(value) => {
+                    cancelReadingRequest();
                     setCells(value);
                     setCellOffset(0);
                   }}
@@ -980,6 +1163,9 @@ export default function App() {
               </section>
               <section className="reading-panel">
                 <h2>Reading</h2>
+                {current?.context && (
+                  <p id="reading-context">{current.context}</p>
+                )}
                 <div className="text-output">
                   <textarea
                     id="reading-output"
@@ -987,6 +1173,9 @@ export default function App() {
                     readOnly
                     value={line}
                     aria-label="Stable reading output"
+                    aria-describedby={
+                      current?.context ? "reading-context" : undefined
+                    }
                     aria-live="polite"
                     aria-atomic="true"
                   />
@@ -1047,7 +1236,14 @@ export default function App() {
                 )}
                 {historical && !saved && (
                   <p className="historical-note">
-                    Saved text. Select a block for its latest version.
+                    {page?.blocks.some((block) => block.id === current?.id)
+                      ? "This text changed. Your saved version stays here until you select the update."
+                      : "This item is no longer in the captured page. Your saved text is still here."}
+                  </p>
+                )}
+                {updateSummary && (
+                  <p className="historical-note" role="status">
+                    {updateSummary}
                   </p>
                 )}
                 {extension && current && (
@@ -1073,6 +1269,7 @@ export default function App() {
             currentId={current?.id}
             busy={busy === "rank"}
             pending={!result || result.snapshotId !== page?.id}
+            queued={!!pendingUpdate.current}
             onSelect={(block) => {
               readBlock(block);
               setActiveTab("read");

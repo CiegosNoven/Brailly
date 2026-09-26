@@ -4,7 +4,7 @@ async function capture(tabId?: number) {
       const store = await chrome.storage.session.get('sourceTabId');
       tabId = typeof store.sourceTabId === 'number' ? store.sourceTabId : undefined;
     }
-    if (!tabId) throw new Error('Open a website and click the Braily extension icon first.');
+    if (!tabId) throw new Error('Open a website and click the Brailly extension icon first.');
     await chrome.storage.session.set({ sourceTabId: tabId, captureError: '' });
     await chrome.scripting.executeScript({ target: { tabId }, files: ['content.js'] });
     return true;
@@ -23,7 +23,7 @@ chrome.action.onClicked.addListener(tab => {
 });
 
 chrome.runtime.onMessage.addListener((message, sender, respond) => {
-  if (message.type === 'snapshot' && sender.tab?.id) {
+  if (message.type === 'snapshot' && sender.tab?.id && sender.frameId === 0) {
     void chrome.storage.session.get('sourceTabId').then(value => {
       if (value.sourceTabId === sender.tab!.id) return chrome.storage.session.set({ snapshot: message.snapshot, pageChanged: false, captureError: '' });
     });

@@ -10,6 +10,6 @@ Open [Brailly](https://brailly-jev.vercel.app). Analyze shows the webpage and Je
 
 **Run demo** performs the offer and entrance changes in sequence. The museum is sample content; its mutations are real, and Jev evaluates them live.
 
-For a JavaScript application, install the extension first. Open the source website, click Brailly, capture and classify. After changing the source page, recapture it when the change notice appears. The extension currently requires this manual refresh.
+For a JavaScript application, install the extension first. Open the source website, click Brailly, capture and classify. Captured page changes arrive automatically. For an imported HTML page, use **Refresh source page**; it fetches the source again while holding the reading line.
 
 If Jev returns a service error, the reader keeps the source text and shows the error. Retry when the service is available; don't describe retained text as a new classification.

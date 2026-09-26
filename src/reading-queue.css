@@ -84,6 +84,11 @@
 .queue-copy {
   min-width: 0;
 }
+.queue-context {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted, #58644f);
+}
 .queue-text {
   display: -webkit-box;
   overflow: hidden;

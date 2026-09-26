@@ -1,0 +1,776 @@
+{
+  "capturedAt": "2026-09-26T21:07:38.039Z",
+  "limitations": [
+    "Achla uses supplied rendered HTML; this script extracts with linkedom and cannot evaluate computed CSS visibility.",
+    "Dayton widgets are independently fetched public HTML. There is no authenticated or private patient data.",
+    "All mutations are controlled replay fixtures. Results do not prove the source websites changed naturally.",
+    "Jev inputs are capped at eight source blocks per replay; full-site ranking is checked separately."
+  ],
+  "sources": {
+    "achla": {
+      "url": "https://achladeal.com/en",
+      "inputFile": "/tmp/brailly-dom-audit/latest-rendered-0.html",
+      "fileModifiedAt": "2026-09-26T21:05:39.856Z",
+      "blocks": 60,
+      "candidates": 630
+    },
+    "dayton": {
+      "url": "https://childrensdayton.org/wait-times/#emergency",
+      "blocks": 60,
+      "embeddedSources": [
+        {
+          "url": "https://mykidschart.childrensdayton.org/mychart/Scheduling/EDWaitTime/EDWaitTimeWidget?departments=201067901&serviceAreas=101,201",
+          "context": "Dayton Children's Emergency Department – south campus",
+          "status": "included"
+        },
+        {
+          "url": "https://mykidschart.childrensdayton.org/mychart/Scheduling/EDWaitTime/EDWaitTimeWidget?departments=101067801&serviceAreas=101,201",
+          "context": "Emergency Department – main campus",
+          "status": "included"
+        }
+      ],
+      "embeddedOmitted": 0
+    }
+  },
+  "records": [
+    {
+      "name": "travel-countdown",
+      "evidence": "controlled DOM replay on a captured real website; not an observed upstream event",
+      "sourceUrl": "https://achladeal.com/en",
+      "note": "One-second tick on the observed countdown; no reservation is active.",
+      "observedSourceValue": {
+        "id": "b1559816294",
+        "tag": "span",
+        "role": "text",
+        "region": "main",
+        "text": "00:54:21",
+        "order": 62,
+        "context": "Flight to Alghero",
+        "live": "timer"
+      },
+      "task": "Compare the published fare for Flight to Alghero.",
+      "retained": {
+        "id": "b2871849455",
+        "tag": "span",
+        "role": "text",
+        "region": "main",
+        "text": "277₪",
+        "order": 60,
+        "context": "Flight to Alghero"
+      },
+      "offset": 4,
+      "changes": [
+        {
+          "kind": "changed",
+          "id": "b1559816294",
+          "before": {
+            "id": "b1559816294",
+            "tag": "span",
+            "role": "text",
+            "region": "main",
+            "text": "00:54:21",
+            "order": 62,
+            "context": "Flight to Alghero",
+            "live": "timer"
+          },
+          "after": {
+            "id": "b1559816294",
+            "tag": "span",
+            "role": "text",
+            "region": "main",
+            "text": "00:54:20",
+            "order": 62,
+            "context": "Flight to Alghero",
+            "live": "timer"
+          }
+        }
+      ],
+      "expectedTransitions": [
+        "DEFER"
+      ],
+      "passed": true,
+      "actual": {
+        "transition": {
+          "type": "choice",
+          "choice": "DEFER",
+          "confidence": 0.99,
+          "probabilities": {
+            "NONE": 0,
+            "QUEUE_HIGH": 0,
+            "DEFER": 1,
+            "INTERRUPT": 0
+          }
+        },
+        "model": "jev-1.13.0",
+        "latencyMs": 297,
+        "usage": {
+          "input_tokens": 4267,
+          "output_tokens": 407
+        },
+        "results": [
+          {
+            "id": "b2871849455",
+            "category": "CONTENT",
+            "score": 2.99,
+            "confidence": 0.99,
+            "probabilities": {
+              "0": 0,
+              "1": 0,
+              "2": 0.01,
+              "3": 0.99
+            },
+            "categoryConfidence": 1,
+            "priority": "NOW"
+          },
+          {
+            "id": "b1559816294",
+            "category": "NOTICE",
+            "score": 0.4,
+            "confidence": 0.6,
+            "probabilities": {
+              "0": 0.68,
+              "1": 0.25,
+              "2": 0.07,
+              "3": 0
+            },
+            "categoryConfidence": 0.99,
+            "priority": "LATER"
+          },
+          {
+            "id": "b2926122519",
+            "category": "CONTENT",
+            "score": 2.96,
+            "confidence": 0.96,
+            "probabilities": {
+              "0": 0,
+              "1": 0,
+              "2": 0.03,
+              "3": 0.97
+            },
+            "categoryConfidence": 1,
+            "priority": "NOW"
+          },
+          {
+            "id": "b688812276",
+            "category": "NOTICE",
+            "score": 1.79,
+            "confidence": 0.77,
+            "probabilities": {
+              "0": 0.05,
+              "1": 0.11,
+              "2": 0.83,
+              "3": 0.01
+            },
+            "categoryConfidence": 0.98,
+            "priority": "NEXT"
+          }
+        ]
+      }
+    },
+    {
+      "name": "travel-unrelated-promotion",
+      "evidence": "controlled DOM replay on a captured real website; not an observed upstream event",
+      "sourceUrl": "https://achladeal.com/en",
+      "note": "An unrelated existing promotional node is replaced with explicitly controlled replay text.",
+      "observedSourceValue": {
+        "id": "b3104181880",
+        "tag": "a",
+        "role": "link",
+        "region": "header",
+        "text": "Achla Deal",
+        "order": 1,
+        "href": "https://achladeal.com/en"
+      },
+      "task": "Read the published fare for Flight to Alghero.",
+      "retained": {
+        "id": "b2871849455",
+        "tag": "span",
+        "role": "text",
+        "region": "main",
+        "text": "277₪",
+        "order": 60,
+        "context": "Flight to Alghero"
+      },
+      "offset": 4,
+      "changes": [
+        {
+          "kind": "changed",
+          "id": "b3104181880",
+          "before": {
+            "id": "b3104181880",
+            "tag": "a",
+            "role": "link",
+            "region": "header",
+            "text": "Achla Deal",
+            "order": 1,
+            "href": "https://achladeal.com/en"
+          },
+          "after": {
+            "id": "b3104181880",
+            "tag": "a",
+            "role": "link",
+            "region": "header",
+            "text": "Newsletter promotion updated. Subscribe to receive more travel offers.",
+            "order": 1,
+            "href": "https://achladeal.com/en"
+          }
+        }
+      ],
+      "expectedTransitions": [
+        "DEFER"
+      ],
+      "passed": true,
+      "actual": {
+        "transition": {
+          "type": "choice",
+          "choice": "DEFER",
+          "confidence": 0.97,
+          "probabilities": {
+            "DEFER": 0.98,
+            "NONE": 0.02,
+            "QUEUE_HIGH": 0,
+            "INTERRUPT": 0
+          }
+        },
+        "model": "jev-1.13.0",
+        "latencyMs": 120,
+        "usage": {
+          "input_tokens": 2823,
+          "output_tokens": 232
+        },
+        "results": [
+          {
+            "id": "b3104181880",
+            "category": "NAVIGATION",
+            "score": 0.18,
+            "confidence": 0.82,
+            "probabilities": {
+              "0": 0.83,
+              "1": 0.17,
+              "2": 0,
+              "3": 0
+            },
+            "categoryConfidence": 0.39,
+            "priority": "LATER"
+          },
+          {
+            "id": "b2871849455",
+            "category": "CONTENT",
+            "score": 3,
+            "confidence": 1,
+            "probabilities": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 1
+            },
+            "categoryConfidence": 1,
+            "priority": "NOW"
+          }
+        ]
+      }
+    },
+    {
+      "name": "travel-current-price",
+      "evidence": "controlled DOM replay on a captured real website; not an observed upstream event",
+      "sourceUrl": "https://achladeal.com/en",
+      "note": "The observed price is increased by 25 in a local DOM copy; this is not a live fare claim.",
+      "observedSourceValue": {
+        "id": "b2871849455",
+        "tag": "span",
+        "role": "text",
+        "region": "main",
+        "text": "277₪",
+        "order": 60,
+        "context": "Flight to Alghero"
+      },
+      "task": "Compare the published fare for Flight to Alghero; no booking or checkout is in progress.",
+      "retained": {
+        "id": "b2871849455",
+        "tag": "span",
+        "role": "text",
+        "region": "main",
+        "text": "277₪",
+        "order": 60,
+        "context": "Flight to Alghero"
+      },
+      "offset": 4,
+      "changes": [
+        {
+          "kind": "changed",
+          "id": "b2871849455",
+          "before": {
+            "id": "b2871849455",
+            "tag": "span",
+            "role": "text",
+            "region": "main",
+            "text": "277₪",
+            "order": 60,
+            "context": "Flight to Alghero"
+          },
+          "after": {
+            "id": "b2871849455",
+            "tag": "span",
+            "role": "text",
+            "region": "main",
+            "text": "302₪",
+            "order": 60,
+            "context": "Flight to Alghero"
+          }
+        }
+      ],
+      "expectedTransitions": [
+        "QUEUE_HIGH"
+      ],
+      "passed": true,
+      "actual": {
+        "transition": {
+          "type": "choice",
+          "choice": "QUEUE_HIGH",
+          "confidence": 0.96,
+          "probabilities": {
+            "NONE": 0.02,
+            "DEFER": 0.01,
+            "QUEUE_HIGH": 0.97,
+            "INTERRUPT": 0
+          }
+        },
+        "model": "jev-1.13.0",
+        "latencyMs": 106,
+        "usage": {
+          "input_tokens": 3522,
+          "output_tokens": 317
+        },
+        "results": [
+          {
+            "id": "b2871849455",
+            "category": "CONTENT",
+            "score": 2.99,
+            "confidence": 0.99,
+            "probabilities": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 1
+            },
+            "categoryConfidence": 1,
+            "priority": "NOW"
+          },
+          {
+            "id": "b2926122519",
+            "category": "CONTENT",
+            "score": 2.59,
+            "confidence": 0.59,
+            "probabilities": {
+              "0": 0.01,
+              "1": 0.03,
+              "2": 0.31,
+              "3": 0.65
+            },
+            "categoryConfidence": 1,
+            "priority": "NOW"
+          },
+          {
+            "id": "b688812276",
+            "category": "NOTICE",
+            "score": 1.9,
+            "confidence": 0.88,
+            "probabilities": {
+              "0": 0.02,
+              "1": 0.07,
+              "2": 0.9,
+              "3": 0.01
+            },
+            "categoryConfidence": 0.99,
+            "priority": "NEXT"
+          }
+        ]
+      }
+    },
+    {
+      "name": "travel-missing-price",
+      "evidence": "controlled DOM replay on a captured real website; not an observed upstream event",
+      "sourceUrl": "https://achladeal.com/en",
+      "note": "Price node removed only in the replay. Absence from a bounded capture does not establish cancellation.",
+      "observedSourceValue": {
+        "id": "b2871849455",
+        "tag": "span",
+        "role": "text",
+        "region": "main",
+        "text": "277₪",
+        "order": 60,
+        "context": "Flight to Alghero"
+      },
+      "task": "Read the published fare for Flight to Alghero.",
+      "retained": {
+        "id": "b2871849455",
+        "tag": "span",
+        "role": "text",
+        "region": "main",
+        "text": "277₪",
+        "order": 60,
+        "context": "Flight to Alghero"
+      },
+      "offset": 4,
+      "changes": [
+        {
+          "kind": "removed",
+          "id": "b2871849455",
+          "before": {
+            "id": "b2871849455",
+            "tag": "span",
+            "role": "text",
+            "region": "main",
+            "text": "277₪",
+            "order": 60,
+            "context": "Flight to Alghero"
+          }
+        }
+      ],
+      "expectedTransitions": [
+        "NONE",
+        "QUEUE_HIGH"
+      ],
+      "passed": true,
+      "actual": {
+        "transition": {
+          "type": "choice",
+          "choice": "NONE",
+          "confidence": 0.79,
+          "probabilities": {
+            "NONE": 0.84,
+            "QUEUE_HIGH": 0.05,
+            "INTERRUPT": 0,
+            "DEFER": 0.11
+          }
+        },
+        "model": "jev-1.13.0",
+        "latencyMs": 150,
+        "usage": {
+          "input_tokens": 2808,
+          "output_tokens": 227
+        },
+        "results": [
+          {
+            "id": "b2926122519",
+            "category": "CONTENT",
+            "score": 2.99,
+            "confidence": 0.99,
+            "probabilities": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 1
+            },
+            "categoryConfidence": 1,
+            "priority": "NOW"
+          },
+          {
+            "id": "b688812276",
+            "category": "NOTICE",
+            "score": 1.51,
+            "confidence": 0.5,
+            "probabilities": {
+              "0": 0.08,
+              "1": 0.34,
+              "2": 0.58,
+              "3": 0
+            },
+            "categoryConfidence": 0.99,
+            "priority": "NEXT"
+          }
+        ]
+      }
+    },
+    {
+      "name": "hospital-wait-replay-35-to-55",
+      "evidence": "controlled DOM replay on a captured real website; not an observed upstream event",
+      "sourceUrl": "https://childrensdayton.org/wait-times/#emergency",
+      "note": "Both 35 and 55 minutes are controlled replay values. observedSourceValue preserves the actual fetched estimate. No medical recommendation is generated.",
+      "observedSourceValue": {
+        "id": "b3260786419",
+        "tag": "p",
+        "role": "text",
+        "region": "main",
+        "text": "South Campus ED 10 min",
+        "order": 142,
+        "context": "Dayton Children's Emergency Department – south campus"
+      },
+      "task": "Read the published wait estimate for Dayton Children's Emergency Department – south campus.",
+      "retained": {
+        "id": "b1754602218",
+        "tag": "p",
+        "role": "text",
+        "region": "main",
+        "text": "Check real-time wait times for Dayton Children’s emergency, urgent care, kids express, and after-ortho locations to help plan your visit and get care faster.",
+        "order": 117,
+        "context": "wait times"
+      },
+      "offset": 4,
+      "changes": [
+        {
+          "kind": "changed",
+          "id": "b3260786419",
+          "before": {
+            "id": "b3260786419",
+            "tag": "p",
+            "role": "text",
+            "region": "main",
+            "text": "South Campus ED 35 min",
+            "order": 142,
+            "context": "Dayton Children's Emergency Department – south campus"
+          },
+          "after": {
+            "id": "b3260786419",
+            "tag": "p",
+            "role": "text",
+            "region": "main",
+            "text": "South Campus ED 55 min",
+            "order": 142,
+            "context": "Dayton Children's Emergency Department – south campus"
+          }
+        }
+      ],
+      "expectedTransitions": [
+        "QUEUE_HIGH"
+      ],
+      "passed": true,
+      "actual": {
+        "transition": {
+          "type": "choice",
+          "choice": "QUEUE_HIGH",
+          "confidence": 0.99,
+          "probabilities": {
+            "INTERRUPT": 0,
+            "NONE": 0,
+            "QUEUE_HIGH": 1,
+            "DEFER": 0
+          }
+        },
+        "model": "jev-1.13.0",
+        "latencyMs": 113,
+        "usage": {
+          "input_tokens": 7463,
+          "output_tokens": 766
+        },
+        "results": [
+          {
+            "id": "b1754602218",
+            "category": "CONTENT",
+            "score": 1,
+            "confidence": 0.98,
+            "probabilities": {
+              "0": 0.01,
+              "1": 0.98,
+              "2": 0.01,
+              "3": 0
+            },
+            "categoryConfidence": 0.85,
+            "priority": "LATER"
+          },
+          {
+            "id": "b3260786419",
+            "category": "NOTICE",
+            "score": 3,
+            "confidence": 1,
+            "probabilities": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 1
+            },
+            "categoryConfidence": 1,
+            "priority": "NOW"
+          },
+          {
+            "id": "b1821619252",
+            "category": "ACTION",
+            "score": 1.33,
+            "confidence": 0.58,
+            "probabilities": {
+              "0": 0.04,
+              "1": 0.65,
+              "2": 0.25,
+              "3": 0.06
+            },
+            "categoryConfidence": 0.7,
+            "priority": "NEXT"
+          },
+          {
+            "id": "b339349359",
+            "category": "CONTENT",
+            "score": 0.75,
+            "confidence": 0.56,
+            "probabilities": {
+              "0": 0.35,
+              "1": 0.56,
+              "2": 0.09,
+              "3": 0
+            },
+            "categoryConfidence": 1,
+            "priority": "LATER"
+          },
+          {
+            "id": "b3336087839",
+            "category": "ACTION",
+            "score": 0.53,
+            "confidence": 0.51,
+            "probabilities": {
+              "0": 0.48,
+              "1": 0.51,
+              "2": 0.01,
+              "3": 0
+            },
+            "categoryConfidence": 0.69,
+            "priority": "LATER"
+          },
+          {
+            "id": "b3259976340",
+            "category": "ACTION",
+            "score": 0.59,
+            "confidence": 0.55,
+            "probabilities": {
+              "0": 0.43,
+              "1": 0.56,
+              "2": 0.01,
+              "3": 0
+            },
+            "categoryConfidence": 0.7,
+            "priority": "LATER"
+          },
+          {
+            "id": "b2313864779",
+            "category": "NOTICE",
+            "score": 0.69,
+            "confidence": 0.54,
+            "probabilities": {
+              "0": 0.38,
+              "1": 0.56,
+              "2": 0.04,
+              "3": 0.02
+            },
+            "categoryConfidence": 0.39,
+            "priority": "LATER"
+          },
+          {
+            "id": "b3393627740",
+            "category": "NAVIGATION",
+            "score": 0.96,
+            "confidence": 0.92,
+            "probabilities": {
+              "0": 0.06,
+              "1": 0.92,
+              "2": 0.02,
+              "3": 0
+            },
+            "categoryConfidence": 0.91,
+            "priority": "LATER"
+          }
+        ]
+      }
+    },
+    {
+      "name": "hospital-unrelated-update",
+      "evidence": "controlled DOM replay on a captured real website; not an observed upstream event",
+      "sourceUrl": "https://childrensdayton.org/wait-times/#emergency",
+      "note": "Only an unrelated existing site node is changed in the local replay.",
+      "observedSourceValue": {
+        "id": "b2674741133",
+        "tag": "a",
+        "role": "link",
+        "region": "body",
+        "text": "careers",
+        "order": 2,
+        "href": "https://childrensdayton.org/careers/"
+      },
+      "task": "Read the published wait estimate for Dayton Children's Emergency Department – south campus.",
+      "retained": {
+        "id": "b3260786419",
+        "tag": "p",
+        "role": "text",
+        "region": "main",
+        "text": "South Campus ED 10 min",
+        "order": 142,
+        "context": "Dayton Children's Emergency Department – south campus"
+      },
+      "offset": 4,
+      "changes": [
+        {
+          "kind": "changed",
+          "id": "b2674741133",
+          "before": {
+            "id": "b2674741133",
+            "tag": "a",
+            "role": "link",
+            "region": "body",
+            "text": "careers",
+            "order": 2,
+            "href": "https://childrensdayton.org/careers/"
+          },
+          "after": {
+            "id": "b2674741133",
+            "tag": "a",
+            "role": "link",
+            "region": "body",
+            "text": "Hospital newsletter subscription information has changed.",
+            "order": 2,
+            "href": "https://childrensdayton.org/careers/"
+          }
+        }
+      ],
+      "expectedTransitions": [
+        "DEFER"
+      ],
+      "passed": true,
+      "actual": {
+        "transition": {
+          "type": "choice",
+          "choice": "DEFER",
+          "confidence": 0.96,
+          "probabilities": {
+            "QUEUE_HIGH": 0,
+            "NONE": 0.02,
+            "INTERRUPT": 0,
+            "DEFER": 0.98
+          }
+        },
+        "model": "jev-1.13.0",
+        "latencyMs": 103,
+        "usage": {
+          "input_tokens": 2862,
+          "output_tokens": 233
+        },
+        "results": [
+          {
+            "id": "b2674741133",
+            "category": "NAVIGATION",
+            "score": 0.19,
+            "confidence": 0.81,
+            "probabilities": {
+              "0": 0.81,
+              "1": 0.19,
+              "2": 0,
+              "3": 0
+            },
+            "categoryConfidence": 0.8,
+            "priority": "LATER"
+          },
+          {
+            "id": "b3260786419",
+            "category": "NOTICE",
+            "score": 3,
+            "confidence": 1,
+            "probabilities": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 1
+            },
+            "categoryConfidence": 0.99,
+            "priority": "NOW"
+          }
+        ]
+      }
+    }
+  ]
+}
