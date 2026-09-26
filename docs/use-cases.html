@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reflow · Casos de demo</title>
+<meta name="description" content="Seis páginas con información sensible al tiempo para demostrar Reflow + Jev.">
+<style>
+  :root {
+    --bg: #f6f6f1;
+    --surface: #ffffff;
+    --text: #1c1d1a;
+    --muted: #5d6058;
+    --line: #dcddd4;
+    --accent: #2d5bdb;
+    --ok: #1d7a46;
+    --warn: #9a5b00;
+    --interrupt: #b3261e;
+    --chip: #eef0e8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151613;
+      --surface: #1e1f1b;
+      --text: #ecede6;
+      --muted: #a4a79c;
+      --line: #34362f;
+      --accent: #8aa8ff;
+      --ok: #6fd39b;
+      --warn: #f0b75c;
+      --interrupt: #ff8a80;
+      --chip: #2a2c26;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 1120px; margin: 0 auto; padding: 40px 16px 64px; }
+  h1 { font-size: 1.9rem; margin: 0 0 8px; letter-spacing: -0.01em; }
+  h2 { font-size: 1.3rem; margin: 48px 0 12px; }
+  h3 { font-size: 1.1rem; margin: 0 0 4px; }
+  p { margin: 0 0 12px; }
+  a { color: var(--accent); }
+  .lede { color: var(--muted); max-width: 70ch; }
+  .pitch {
+    border-left: 4px solid var(--accent);
+    background: var(--surface);
+    padding: 14px 18px;
+    margin: 24px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  .pitch strong { display: block; font-size: 1.1rem; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+  .tag {
+    display: inline-block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--chip);
+    white-space: nowrap;
+  }
+  .tag.defer { color: var(--muted); }
+  .tag.queue { color: var(--warn); }
+  .tag.interrupt { color: var(--interrupt); }
+  .tag.ok { color: var(--ok); }
+  .tag.warn { color: var(--warn); }
+
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 880px; font-size: 0.93rem; }
+  caption { text-align: left; padding: 12px 14px; color: var(--muted); font-size: 0.85rem; }
+  th, td { text-align: left; vertical-align: top; padding: 12px 14px; border-top: 1px solid var(--line); }
+  thead th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+  tbody th { font-weight: 600; min-width: 150px; }
+  tbody th span { display: block; font-weight: 400; color: var(--muted); font-size: 0.82rem; }
+
+  .cases { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .case {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .case .meta { color: var(--muted); font-size: 0.88rem; margin-bottom: 12px; }
+  .task { background: var(--chip); border-radius: 6px; padding: 8px 12px; margin: 0 0 12px; font-size: 0.93rem; }
+  .case ol { margin: 0 0 12px; padding-left: 20px; }
+  .case li { margin-bottom: 6px; }
+  .case .note { font-size: 0.86rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px; margin: 0; }
+
+  .flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 0; margin: 0; list-style: none; }
+  .flow li { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 0.9rem; }
+  .flow li:not(:last-child)::after { content: "→"; margin-left: 10px; color: var(--muted); }
+
+  footer { margin-top: 48px; color: var(--muted); font-size: 0.85rem; }
+  footer ul { padding-left: 20px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Reflow · Casos de demo</h1>
+  <p class="lede">Seis páginas reales donde la información cambia mientras la persona lee y perderse el cambio cuesta dinero, tiempo o salud. La selección combina nuestras dos ideas originales (Achla Deal y Dayton Children's) con las más fuertes de dos rondas de investigación.</p>
+
+  <div class="pitch">
+    <strong>“Pude enterarme, evaluar y actuar a tiempo sin perder mi lugar.”</strong>
+    Hoy un lector de pantalla o anuncia todos los cambios sin filtrar (“9:59… 9:58… 9:57…”) o no anuncia ninguno. En una línea Braille de 40 celdas, cada interrupción borra lo que estabas leyendo. Reflow usa Jev para decidir qué cambio importa <em>para la tarea de esa persona</em>.
+  </div>
+
+  <h2 id="como-funciona">Cómo funciona el comportamiento esperado</h2>
+  <ul class="flow" aria-label="Flujo de una actualización">
+    <li>La página cambia (MutationObserver)</li>
+    <li>Diff de bloques: qué texto cambió</li>
+    <li>El código filtra lo exacto (relojes, umbrales, precios)</li>
+    <li>Jev decide con la tarea del lector</li>
+    <li>Línea Braille estable + cola</li>
+  </ul>
+  <ul class="legend" aria-label="Decisiones posibles">
+    <li><span class="tag defer">DEFER</span> puede esperar; la lectura no se mueve</li>
+    <li><span class="tag queue">QUEUE_HIGH</span> relevante pronto; va a la cola</li>
+    <li><span class="tag interrupt">INTERRUPT</span> esperar causaría perder algo; se muestra ya y se guarda la posición</li>
+  </ul>
+
+  <h2 id="resumen">Resumen</h2>
+  <div class="table-wrap">
+    <table>
+      <caption>Viabilidad: <span class="tag ok">Comprobada</span> = revisada en el navegador el 26/09/2026, el contenido está en el DOM principal. <span class="tag warn">Por preparar</span> = requiere trabajo extra o una réplica local.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Página</th>
+          <th scope="col">Qué cambia</th>
+          <th scope="col">Ruido que Reflow deja pasar</th>
+          <th scope="col">Lo que sí interrumpe</th>
+          <th scope="col">Viabilidad</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row"><a href="https://achladeal.com/en">Achla Deal</a><span>Vuelos · dinero</span></th>
+          <td>277 ofertas en vivo, contadores por oferta, precios que se refrescan cada minuto.</td>
+          <td>Contadores que corren cada segundo (medimos 250 cambios del DOM en 5 s) y ofertas a otros destinos.</td>
+          <td>Aparece o baja una oferta que encaja con tu destino y presupuesto, o la oferta que lees está por vencer.</td>
+          <td><span class="tag ok">Comprobada</span></td>
+        </tr>
+        <tr>
+          <th scope="row"><a href="https://childrensdayton.org/wait-times/">Dayton Children's</a><span>Salud</span></th>
+          <td>Tiempos de espera que se actualizan cada minuto. Los Kids Express pueden cerrar antes al llegar a su capacidad diaria.</td>
+          <td>Fluctuaciones de un par de minutos y centros a los que no vas.</td>
+          <td>El centro al que vas deja de aceptar pacientes.</td>
+          <td><span class="tag warn">Por preparar</span> Urgencias vive en iframes de MyChart</td>
+        </tr>
+        <tr>
+          <th scope="row"><a href="https://www.dublinairport.com/flight-information/live-departures">Dublin Airport</a><span>Movilidad</span></th>
+          <td>Estados de vuelo: <code>GO TO GATE</code>, <code>NOW BOARDING</code>, <code>GATE CLOSED</code>, <code>DELAYED</code>, puerta y tiempo a la puerta.</td>
+          <td>Cambios de cientos de vuelos ajenos.</td>
+          <td>Tu vuelo pasa a <code>GO TO GATE</code>, cambia de puerta o se retrasa.</td>
+          <td><span class="tag ok">Comprobada</span></td>
+        </tr>
+        <tr>
+          <th scope="row"><a href="https://www.bart.gov/schedules/advisories">BART</a><span>Movilidad · lenguaje natural</span></th>
+          <td>Avisos de servicio escritos en texto libre: cortes, retrasos, autobuses puente, ascensores.</td>
+          <td>Avisos de otras líneas y estaciones.</td>
+          <td>Un aviso que afecta tu trayecto aunque no mencione tu estación de origen ni de destino.</td>
+          <td><span class="tag warn">Por preparar</span> Cambios lentos → réplica</td>
+        </tr>
+        <tr>
+          <th scope="row"><a href="https://help.ticketmaster.com/hc/en-us/articles/9642204793617-Why-is-there-a-time-limit-for-checking-out">Ticketmaster</a><span>Tiempo · entradas</span></th>
+          <td>Posición en la fila virtual, “es tu turno” y el temporizador de compra que libera las entradas.</td>
+          <td>“Sigues en la fila…” y el reloj de cada segundo.</td>
+          <td>“¡Es tu turno!” y los avisos de tiempo restante en umbrales definidos en código.</td>
+          <td><span class="tag warn">Por preparar</span> Necesita réplica (cola real + anti-bot)</td>
+        </tr>
+        <tr>
+          <th scope="row"><a href="https://www.booking.com/">Booking.com</a><span>Presión comercial</span></th>
+          <td>Precio de la habitación, disponibilidad y mensajes de urgencia.</td>
+          <td>“¡Solo queda 1!”, “12 personas viendo esto”, “Reservado 5 veces hoy”: siguen accesibles, pero no interrumpen.</td>
+          <td>Cambio real en el precio o disponibilidad de la habitación que estás evaluando.</td>
+          <td><span class="tag warn">Por preparar</span> Sin comprobar aún</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="demos">Cómo sería cada demo</h2>
+  <div class="cases">
+
+    <article class="case" aria-labelledby="c1">
+      <h3 id="c1">1 · Achla Deal: la oferta que sí te sirve</h3>
+      <p class="meta">Historia: aparece una oportunidad económica mientras lees.</p>
+      <p class="task"><strong>Tarea del lector:</strong> “Busco un vuelo a Madrid por menos de $400 que salga este mes.”</p>
+      <ol>
+        <li>La persona lee las condiciones de una oferta en su línea Braille.</li>
+        <li>Los contadores corren cada segundo → <span class="tag defer">DEFER</span>. La línea no se mueve.</li>
+        <li>Baja una oferta a Cancún → <span class="tag defer">DEFER</span>. No encaja con la tarea y queda disponible en la cola.</li>
+        <li>Aparece Madrid a $380 → <span class="tag interrupt">INTERRUPT</span>. La línea muestra el texto exacto de la oferta y cuánto falta para que venza.</li>
+        <li>“Reanudar” devuelve a la persona al carácter exacto donde estaba leyendo.</li>
+      </ol>
+      <p class="note"><strong>Métrica para el pitch:</strong> 250 cambios del DOM → 1 interrupción. Comparar precio y tiempo restante se hace en código; Jev decide si la oferta encaja con la intención.</p>
+    </article>
+
+    <article class="case" aria-labelledby="c2">
+      <h3 id="c2">2 · Dayton Children's: el centro cerró</h3>
+      <p class="meta">Historia: información logística de salud que cambia antes de que llegues.</p>
+      <p class="task"><strong>Tarea del lector:</strong> “Voy al Kids Express más cercano; mi hijo tiene dolor de oído.”</p>
+      <ol>
+        <li>La persona lee cómo llegar al centro.</li>
+        <li>La espera sube de “1 – 16 min” a “3 – 18 min” → <span class="tag defer">DEFER</span>.</li>
+        <li>Otro centro cambia su espera → <span class="tag defer">DEFER</span>.</li>
+        <li>Su centro deja de aceptar pacientes por capacidad → <span class="tag interrupt">INTERRUPT</span> con el texto exacto del hospital.</li>
+        <li>La persona revisa otro centro y vuelve a donde estaba.</li>
+      </ol>
+      <p class="note"><strong>A preparar:</strong> los tiempos de urgencias están en iframes de <code>mykidschart.childrensdayton.org</code>. Hay dos caminos: activar <code>allFrames</code> en la extensión con permiso para ese dominio, o abrir la URL del widget directamente. Los tiempos de urgent care sí están en la página principal. Reflow nunca da consejo clínico: solo transmite el texto del hospital.</p>
+    </article>
+
+    <article class="case" aria-labelledby="c3">
+      <h3 id="c3">3 · Dublin Airport: tu vuelo, no los otros 200</h3>
+      <p class="meta">Historia: el mismo cambio es ruido para una persona y urgente para otra.</p>
+      <p class="task"><strong>Tarea del lector:</strong> “Voy en el vuelo EI 123 a Madrid y estoy comiendo antes del control de seguridad.”</p>
+      <ol>
+        <li>La persona lee el menú del restaurante del aeropuerto.</li>
+        <li>Decenas de vuelos pasan a <code>NOW BOARDING</code> o <code>GATE CLOSED</code> → <span class="tag defer">DEFER</span>.</li>
+        <li>Su vuelo se retrasa 10 min → <span class="tag queue">QUEUE_HIGH</span>. Queda en la cola sin cortar la lectura.</li>
+        <li>Su vuelo pasa a <code>GO TO GATE</code> → <span class="tag interrupt">INTERRUPT</span>.</li>
+        <li>Con la tarea “ya estoy en la puerta”, el mismo aviso no interrumpe. Mostrar ambos lados es lo que prueba que Jev entiende el contexto.</li>
+      </ol>
+      <p class="note"><strong>Extra:</strong> conecta con la demo del aeropuerto que ya existe en <code>src/FlightLab.tsx</code>. El número de vuelo es de ejemplo.</p>
+    </article>
+
+    <article class="case" aria-labelledby="c4">
+      <h3 id="c4">4 · BART: el aviso que no nombra tu estación</h3>
+      <p class="meta">Historia: aquí luce la comprensión semántica de Jev, no solo filtrar por palabras clave.</p>
+      <p class="task"><strong>Tarea del lector:</strong> “Voy de Embarcadero al aeropuerto SFO.”</p>
+      <ol>
+        <li>La persona lee el horario de su tren.</li>
+        <li>Aviso de ascensor en otra estación → <span class="tag defer">DEFER</span>.</li>
+        <li>Aviso: “Sin servicio entre Balboa Park y Daly City; autobuses puente” → <span class="tag interrupt">INTERRUPT</span>, porque el trayecto pasa por ahí aunque el aviso no diga “Embarcadero” ni “SFO”.</li>
+        <li>La persona lee el aviso completo y vuelve al horario.</li>
+      </ol>
+      <p class="note"><strong>Diseño:</strong> el código pone en el estado la lista de estaciones del trayecto (dato conocido) y Jev juzga si el aviso las afecta. Así evitamos pedirle que infiera la ruta (Jev 1.13 tropieza con la indirección). Los avisos reales cambian poco, así que conviene una réplica local.</p>
+    </article>
+
+    <article class="case" aria-labelledby="c5">
+      <h3 id="c5">5 · Ticketmaster: es tu turno</h3>
+      <p class="meta">Historia: una barrera documentada. Si no estás atento, pierdes la fila o las entradas.</p>
+      <p class="task"><strong>Tarea del lector:</strong> “Quiero comprar 2 entradas para el concierto del sábado.”</p>
+      <ol>
+        <li>Mientras espera en la fila, la persona lee las condiciones del evento.</li>
+        <li>“Hay 2,345 personas delante… 1,980…” → <span class="tag defer">DEFER</span>.</li>
+        <li>“¡Es tu turno! Tienes 10 minutos” → <span class="tag interrupt">INTERRUPT</span>.</li>
+        <li>Durante la compra, el reloj de cada segundo → <span class="tag defer">DEFER</span>. Al quedar 2 min y 30 s → <span class="tag interrupt">INTERRUPT</span>; esos umbrales se calculan en código.</li>
+        <li>Compra completada sin perder el formulario.</li>
+      </ol>
+      <p class="note"><strong>A preparar:</strong> una cola real no se puede provocar a voluntad y tiene anti-bot. Conviene una réplica local con el mismo texto.</p>
+    </article>
+
+    <article class="case" aria-labelledby="c6">
+      <h3 id="c6">6 · Booking.com: presión contra información</h3>
+      <p class="meta">Historia: Reflow no solo alerta, también protege de la presión comercial.</p>
+      <p class="task"><strong>Tarea del lector:</strong> “Hotel en Lisboa, 3 noches, menos de 120 € por noche.”</p>
+      <ol>
+        <li>La persona lee la política de cancelación.</li>
+        <li>“¡Solo queda 1 habitación!” y “12 personas están viendo esto” → <span class="tag defer">DEFER</span>. Los mensajes siguen accesibles en la cola, sin cortar la lectura.</li>
+        <li>El precio de su habitación sube de 115 € a 135 € → <span class="tag interrupt">INTERRUPT</span>. Ya no cumple su límite.</li>
+        <li>La persona decide con calma y vuelve a la política.</li>
+      </ol>
+      <p class="note"><strong>Por qué es cool:</strong> es el ángulo más original. Sin comprobar aún en el navegador. Hay que presentarlo como “mensajes de presión comercial”, sin afirmar que sean falsos.</p>
+    </article>
+
+  </div>
+
+  <h2 id="recomendacion">Recomendación</h2>
+  <p><strong>Demo principal: Achla Deal.</strong> Está comprobada, es muy visual (250 cambios → 1 interrupción) y el beneficio en dinero se entiende al instante. <strong>Segunda escena: Dublin Airport</strong>, para mostrar que la misma actualización interrumpe o no según la tarea. <strong>Dayton Children's</strong> aporta el impacto emocional si resolvemos lo del iframe.</p>
+  <p>Consejo práctico: una página real puede no cambiar justo en los 3 minutos del pitch. Hay que grabar la página real como evidencia y tener una réplica local que dispare el cambio a voluntad (<code>public/example.html</code> ya tiene el mecanismo <code>demo-update</code>).</p>
+
+  <footer>
+    <p>Contexto para el pitch: en 2021, Bryan Bashin, CEO de LightHouse for the Blind, pasó dos horas en una web de vacunación inaccesible y cuando terminó ya no quedaban citas.</p>
+    <ul>
+      <li><a href="https://undark.org/2021/03/01/covid-vaccine-scheduling-inequity-for-the-blind/">Undark: In Online Covid-19 Vaccine Scheduling, Inequity for the Blind</a></li>
+      <li><a href="https://kffhealthnews.org/public-health/covid-vaccine-websites-violate-disability-laws-create-inequity-for-the-blind/">KFF Health News: Covid Vaccine Websites Violate Disability Laws</a></li>
+      <li><a href="https://dev.to/agentkit/countdown-timer-accessibility-why-your-sale-widget-fails-screen-readers-1hc4">DEV: Countdown timer accessibility and screen readers</a></li>
+      <li><a href="https://www.accessibility.com/blog/accessibility-of-ticketmaster">Accessibility.com: Accessibility of Ticketmaster</a></li>
+    </ul>
+    <p>Las escenas son propuestas para construir y probar, no integraciones verificadas.</p>
+  </footer>
+</main>
+</body>
+</html>
