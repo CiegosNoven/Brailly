@@ -1,6 +1,6 @@
 # Brailly verification
 
-Local checks: 43 unit tests and 14 browser tests pass. Production build passes. Browser tests use explicit test-only model responses; live Jev checks are separate.
+Local checks: 51 unit tests and 22 browser tests pass. Production build passes. Browser tests use explicit test-only model responses; live Jev checks are separate.
 
 | Check | Result | Evidence |
 | --- | --- | --- |
@@ -16,4 +16,4 @@ Local checks: 43 unit tests and 14 browser tests pass. Production build passes. 
 | Honest content | PASS | API usage comes from real responses. One Simulation label identifies the device preview; no physical connection or certification is claimed. |
 | Design direction | PASS | User-selected sage palette, larger type, Analyze/Read tabs with a shared queue, original search-and-Braille logo. See DESIGN.md for decisions. |
 
-The extension loaded in a real Chrome profile and captured, recaptured and focused source text. A later live Achla run delivered a natural source update automatically. Automation used temporary permissions; the native toolbar permission grant remains unverified. Cross-origin frames are outside extension capture; the URL importer fetches bounded public embeds. Physical hardware and user validation remain pending.
+The extension was exercised in real Chrome with the shipped website permissions: automatic initial Jev call, cross-origin navigation, active-tab switching, both Dayton wait frames, unsupported-page clearing and reader-close cleanup. The bundled reader ran in an inactive extension tab for automation; the native toolbar click remains unverified. Captures include up to four supported visible direct child frames. Physical hardware and user validation remain pending.

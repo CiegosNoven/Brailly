@@ -1,0 +1,130 @@
+{
+  "verifiedAt": "2026-09-26T21:21:28Z",
+  "manifestModifiedForTest": false,
+  "readerHarness": "Actual bundled reader opened in an inactive extension tab; native toolbar gesture not automated.",
+  "events": [
+    {
+      "step": "Achladeal automatic mount",
+      "at": "2026-09-26T21:20:55Z",
+      "sourceRevision": 1790457654316,
+      "blocks": 60,
+      "rankCalls": 1
+    },
+    {
+      "step": "Achladeal natural observation 8s",
+      "at": "2026-09-26T21:21:03Z",
+      "newSnapshots": 0
+    },
+    {
+      "step": "Same-tab cross-origin navigation",
+      "at": "2026-09-26T21:21:21Z",
+      "sourceRevision": 1790457680984,
+      "waitBlocks": [
+        {
+          "id": "b2867032736",
+          "order": 31,
+          "region": "main",
+          "role": "heading",
+          "tag": "h3",
+          "text": "Dayton Children's Emergency Department – south campus"
+        },
+        {
+          "context": "Dayton Children's Emergency Department – south campus",
+          "id": "b4278003522721621255",
+          "order": 58,
+          "region": "main",
+          "role": "text",
+          "tag": "li",
+          "text": "South Campus ED0 min"
+        },
+        {
+          "context": "Emergency Department – main campus",
+          "id": "b16789226404368513191",
+          "order": 59,
+          "region": "main",
+          "role": "text",
+          "tag": "li",
+          "text": "Children's Emergency Department4 min"
+        }
+      ]
+    },
+    {
+      "step": "Controlled local child DOM edit; not a reported hospital estimate",
+      "at": "2026-09-26T21:21:27Z",
+      "originalValue": "0",
+      "testValue": "123",
+      "automaticCompletedCalls": 1,
+      "mergedText": [
+        "South Campus ED123 min"
+      ]
+    },
+    {
+      "step": "Active tab switch",
+      "at": "2026-09-26T21:21:27Z",
+      "url": "https://example.com/",
+      "sourceRevision": 1790457687619
+    },
+    {
+      "step": "Unsupported page",
+      "at": "2026-09-26T21:21:28Z",
+      "status": "unavailable",
+      "snapshot": null
+    },
+    {
+      "step": "Reader close",
+      "at": "2026-09-26T21:21:28Z",
+      "status": "idle",
+      "snapshot": null
+    }
+  ],
+  "realJevCalls": [
+    {
+      "status": 200,
+      "model": "jev-1.13.0",
+      "latencyMs": 559,
+      "usage": {
+        "input_tokens": 37922,
+        "output_tokens": 5334
+      },
+      "error": null,
+      "task": "Read the main content and useful actions on this page. Put unrelated promotions and site navigation later.",
+      "url": "https://achladeal.com/en"
+    },
+    {
+      "status": 200,
+      "model": "jev-1.13.0",
+      "latencyMs": 495,
+      "usage": {
+        "input_tokens": 38653,
+        "output_tokens": 5395
+      },
+      "error": null,
+      "task": "Read the main content and useful actions on this page. Put unrelated promotions and site navigation later.",
+      "url": "https://childrensdayton.org/wait-times/#emergency"
+    },
+    {
+      "status": 200,
+      "model": "jev-1.13.0",
+      "latencyMs": 615,
+      "usage": {
+        "input_tokens": 44729,
+        "output_tokens": 5441
+      },
+      "error": null,
+      "task": "Read the main content and useful actions on this page. Put unrelated promotions and site navigation later.",
+      "url": "https://childrensdayton.org/wait-times/#emergency"
+    },
+    {
+      "status": 200,
+      "model": "jev-1.13.0",
+      "latencyMs": 140,
+      "usage": {
+        "input_tokens": 2194,
+        "output_tokens": 273
+      },
+      "error": null,
+      "task": "Read the main content and useful actions on this page. Put unrelated promotions and site navigation later.",
+      "url": "https://example.com/"
+    }
+  ]
+}

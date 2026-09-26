@@ -52,16 +52,20 @@ const categoryLabel = {
   EXTRA: "Extra",
 };
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"analyze" | "read">("analyze");
+  const [activeTab, setActiveTab] = useState<"analyze" | "read">(
+    extension ? "read" : "analyze",
+  );
   const [page, setPage] = useState<PageSnapshot | null>(null);
   const [url, setUrl] = useState("");
   const [task, setTask] = useState(
-    "Find the opening hours, ticket price, and accessible entrance.",
+    extension
+      ? "Read the main content and useful actions on this page. Put unrelated promotions and site navigation later."
+      : "Find the opening hours, ticket price, and accessible entrance.",
   );
   const [result, setResult] = useState<Classification | null>(null);
   const [busy, setBusy] = useState<"load" | "rank" | null>(null);
   const [error, setError] = useState("");
-  const [status, setStatus] = useState("Choose a web page to get started.");
+  const [status, setStatus] = useState(extension ? "Opening the current browser page…" : "Choose a web page to get started.");
   const [selected, setSelected] = useState("");
   const [offset, setOffset] = useState(0);
   const [cellOffset, setCellOffset] = useState(0);
@@ -112,7 +116,10 @@ export default function App() {
   pageRef.current = page;
   const baseline = useRef<PageSnapshot | null>(null);
   const lastObserved = useRef<PageSnapshot | null>(null);
-  const refreshingPreview = useRef<{token: string; page: PageSnapshot} | null>(null);
+  const refreshingPreview = useRef<{
+    token: string;
+    page: PageSnapshot;
+  } | null>(null);
   const sourceSession = useRef(0);
   const loadGeneration = useRef(0);
   const loadAbort = useRef<AbortController | null>(null);
@@ -123,7 +130,13 @@ export default function App() {
   const nextRankAt = useRef(0);
   const updateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const processPending = useRef<() => void>(() => {});
-  const receiveSnapshot = useRef<(snapshot: PageSnapshot) => void>(() => {});
+  const receiveSnapshot = useRef<
+    (snapshot: PageSnapshot, newDocument?: boolean) => void
+  >(() => {});
+  const extensionSource = useRef<{ revision: number; tabId?: number }>({
+    revision: -1,
+  });
+  const capturedTabId = useRef<number | undefined>(undefined);
   const [updateSummary, setUpdateSummary] = useState("");
   useEffect(() => {
     return () => {
@@ -167,26 +180,77 @@ export default function App() {
   }
   useEffect(() => {
     if (!extension) return;
-    chrome.storage.session
-      .get(["snapshot", "captureError", "pageChanged"])
-      .then((v) => {
-        if (v.snapshot) acceptPage(v.snapshot as PageSnapshot);
-        if (v.captureError) setError(String(v.captureError));
-        setChanged(!!v.pageChanged);
+    let active = true;
+    let port: chrome.runtime.Port | undefined;
+    let reconnect: ReturnType<typeof setTimeout> | undefined;
+    const connect = () => {
+      if (!active) return;
+      port = chrome.runtime.connect({ name: "brailly-reader" });
+      port.onDisconnect.addListener(() => {
+        if (active) reconnect = setTimeout(connect, 500);
       });
+    };
+    connect();
+    const acceptStored = (value: Record<string, unknown>) => {
+      if (!active) return;
+      const revision =
+        typeof value.sourceRevision === "number"
+          ? value.sourceRevision
+          : extensionSource.current.revision;
+      if (revision < extensionSource.current.revision) return;
+      const tabId =
+        typeof value.sourceTabId === "number"
+          ? value.sourceTabId
+          : extensionSource.current.tabId;
+      extensionSource.current = { revision, tabId };
+      if (value.snapshot === null && ["capturing", "loading", "unavailable", "idle"].includes(String(value.captureStatus))) {
+        epoch.current++;
+        abort.current?.abort();
+        ranking.current = false;
+        pendingUpdate.current = null;
+        if (updateTimer.current) clearTimeout(updateTimer.current);
+        pageRef.current = null;
+        capturedTabId.current = undefined;
+        setPage(null);
+        setReading(null);
+        setSaved(null);
+        setResult(null);
+        setUrl("");
+        setBusy(null);
+        setStatus(value.captureStatus === "unavailable" ? "This browser page cannot be captured." : "Opening the current browser page…");
+      }
+      if (value.snapshot) {
+        const newDocument = tabId !== capturedTabId.current;
+        capturedTabId.current = tabId;
+        receiveSnapshot.current(value.snapshot as PageSnapshot, newDocument);
+      }
+      if (value.captureError) setError(String(value.captureError));
+      else if ("captureError" in value) setError("");
+    };
+    chrome.storage.session
+      .get(["snapshot", "captureError", "sourceRevision", "sourceTabId", "captureStatus"])
+      .then(acceptStored);
     const listener = (
       changes: Record<string, chrome.storage.StorageChange>,
       area: string,
     ) => {
       if (area !== "session") return;
-      if (changes.snapshot?.newValue)
-        receiveSnapshot.current(changes.snapshot.newValue as PageSnapshot);
-      if (changes.captureError)
-        setError(String(changes.captureError.newValue || ""));
-      if (changes.pageChanged) setChanged(!!changes.pageChanged.newValue);
+      acceptStored(
+        Object.fromEntries(
+          Object.entries(changes).map(([key, change]) => [
+            key,
+            change.newValue,
+          ]),
+        ),
+      );
     };
     chrome.storage.onChanged.addListener(listener);
-    return () => chrome.storage.onChanged.removeListener(listener);
+    return () => {
+      active = false;
+      clearTimeout(reconnect);
+      port?.disconnect();
+      chrome.storage.onChanged.removeListener(listener);
+    };
   }, []);
   async function loadExample(path = "/example.html", classify = false) {
     const generation = ++loadGeneration.current;
@@ -427,12 +491,20 @@ export default function App() {
     setTask(value);
     setResult(null);
     setStatus("Task changed. Classify again to get a new reading order.");
+    if (extension && value.trim().length >= 3) {
+      nextRankAt.current = 0;
+      updateTimer.current = setTimeout(() => {
+        baseline.current = null;
+        pendingUpdate.current = pageRef.current;
+        processPending.current();
+      }, 700);
+    }
   }
   const ordered = page ? readingOrder(page, result) : [];
   const current =
     reading || page?.blocks.find((b) => b.id === selected) || ordered[0];
   const selectedIndex = ordered.findIndex((b) => b.id === current?.id);
-  const text = current?.text || "Your selected text will appear here.";
+  const text = current?.text || "";
   const chars = Array.from(text);
   const line = chars.slice(offset, offset + cells).join("");
   const allDots = toBraille(line);
@@ -456,11 +528,16 @@ export default function App() {
         : undefined,
     );
   };
-  receiveSnapshot.current = (incoming) => {
+  receiveSnapshot.current = (incoming, newDocument = false) => {
     if (loadingSource.current) return;
     const previous = pageRef.current;
-    if (!previous || incoming.url !== previous.url) {
+    if (newDocument || !previous || incoming.url !== previous.url) {
       acceptPage(incoming);
+      if (extension && incoming.blocks.length) {
+        baseline.current = null;
+        pendingUpdate.current = incoming;
+        processPending.current();
+      }
       return;
     }
     const observed = lastObserved.current || previous;
@@ -564,7 +641,7 @@ export default function App() {
         return;
       if (next.previewHtml) {
         const token = crypto.randomUUID();
-        refreshingPreview.current = {token, page: next};
+        refreshingPreview.current = { token, page: next };
         setFrame({
           html: frameDocument(next.previewHtml, next.url, token),
           token,
@@ -647,7 +724,13 @@ export default function App() {
       const incoming = m.page as PageSnapshot;
       if (!Array.isArray(incoming?.blocks)) return;
       const refresh = refreshingPreview.current;
-      const next = { ...incoming, previewHtml: refresh?.token === frame.token ? refresh.page.previewHtml : previous?.previewHtml };
+      const next = {
+        ...incoming,
+        previewHtml:
+          refresh?.token === frame.token
+            ? refresh.page.previewHtml
+            : previous?.previewHtml,
+      };
       if (m.version === 1) {
         setFrameReady(true);
         if (refresh?.token === frame.token) {
@@ -1172,6 +1255,7 @@ export default function App() {
                     ref={output}
                     readOnly
                     value={line}
+                    placeholder="Waiting for a web page."
                     aria-label="Stable reading output"
                     aria-describedby={
                       current?.context ? "reading-context" : undefined
@@ -1220,7 +1304,7 @@ export default function App() {
                     Previous line
                   </button>
                   <span>
-                    {offset + 1}–{Math.min(offset + cells, chars.length)}
+                    {chars.length ? offset + 1 : 0}–{Math.min(offset + cells, chars.length)}
                   </span>
                   <button
                     onClick={() => pan(1)}
@@ -1338,10 +1422,9 @@ export default function App() {
             {modal === "extension" ? (
               <>
                 <p>
-                  The Chrome extension captures the actual rendered DOM of the
-                  tab you choose, then opens Brailly beside it. Classification
-                  sends the extracted page text to Jev only when you press the
-                  button.
+                  Open Brailly once. While its panel is open, it follows your
+                  active tab, sends captured text to Jev automatically, and
+                  keeps the display in sync with page changes.
                 </p>
                 <ol>
                   <li>
@@ -1358,15 +1441,15 @@ export default function App() {
                     Choose <b>Load unpacked</b> and select the extracted folder.
                   </li>
                   <li>
-                    Open a web page and click Brailly. Set your purpose and
-                    choose <b>Classify with Jev</b>.
+                    Open a web page and click Brailly. Reading starts
+                    automatically.
                   </li>
                 </ol>
                 <p className="note">
-                  Active-tab access only. Passwords and input values are
-                  excluded. Chrome internal pages, cross-origin frames and
-                  closed shadow roots are not captured. The extension is
-                  unpacked, not a Chrome Web Store release.
+                  Website access lets Brailly follow the active tab. Close the
+                  panel to stop. Passwords and input values are excluded.
+                  Chrome internal pages and closed shadow roots are unavailable.
+                  Install as an unpacked extension.
                 </p>
               </>
             ) : (

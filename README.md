@@ -29,9 +29,9 @@ The museum controls change its actual DOM. Jev decides what to do on every run; 
 
 Download [brailly-extension.zip](https://brailly-jev.vercel.app/brailly-extension.zip), unzip it, then open `chrome://extensions`. Enable Developer mode and choose **Load unpacked**. Select the extracted folder, open a website and click Brailly's toolbar icon.
 
-The extension uses `activeTab` permission and opens a side panel. After capture, it sends updated snapshots as the selected page changes. Updates hold the reading line while Jev evaluates them; bursts share a pending request rather than repeatedly cancelling the active call. **Capture tab** also permits a manual refresh.
+Click Brailly once to open its side panel. It captures and analyzes the current website automatically, follows the active tab and navigation, and sends updated snapshots as the page changes. Website permissions allow this across HTTP and HTTPS sites. Close the panel to stop following. Updates hold the reading line while Jev evaluates them; bursts share a pending request rather than repeatedly cancelling the active call.
 
-Extraction excludes password fields and input values. The extension captures the main document; cross-origin frames and closed shadow roots remain outside its snapshot. The URL importer additionally fetches up to four visible public HTML embeds, with source links and a combined size limit. Use **Refresh source page** to fetch a new snapshot without losing your reading position. The extension is an unpacked build, not a Chrome Web Store release.
+Extraction excludes password fields and input values. The extension captures the main document and up to four supported visible child frames, including cross-origin frames covered by its website permissions. Closed shadow roots and browser-internal pages remain unavailable. The URL importer separately fetches bounded public HTML embeds, with source links. Use **Refresh source page** to fetch a new URL snapshot without losing your reading position. The extension is an unpacked build, not a Chrome Web Store release.
 
 ## Braille output
 
