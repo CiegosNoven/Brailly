@@ -36,6 +36,10 @@ import { toBraille } from "./braille";
 import { frameDocument } from "./frame";
 import BrailleDevice from "./BrailleDevice";
 import ReadingQueue from "./ReadingQueue";
+import { useSpeech } from "./useSpeech";
+import { useVisualCapture } from "./useVisualCapture";
+import VisualDetails from "./VisualDetails";
+import type { VisualEvent } from "../shared/visual";
 import {
   snapshotSignature,
   sourceChanges,
@@ -63,15 +67,60 @@ export default function App() {
       : "Find the opening hours, ticket price, and accessible entrance.",
   );
   const [result, setResult] = useState<Classification | null>(null);
+  const [heldVisualOrder, setHeldVisualOrder] = useState<{
+    snapshotId: string;
+    blocks: DomBlock[];
+  } | null>(null);
   const [busy, setBusy] = useState<"load" | "rank" | null>(null);
   const [error, setError] = useState("");
-  const [status, setStatus] = useState(extension ? "Opening the current browser page…" : "Choose a web page to get started.");
+  const [status, setStatus] = useState(
+    extension
+      ? "Opening the current browser page…"
+      : "Choose a web page to get started.",
+  );
   const [selected, setSelected] = useState("");
   const [offset, setOffset] = useState(0);
   const [cellOffset, setCellOffset] = useState(0);
   const [cells, setCells] = useState(40);
   const [modal, setModal] = useState<"extension" | "hardware" | null>(null);
-  const [speaking, setSpeaking] = useState(false);
+  const speech = useSpeech({ apiBase: API });
+  const visual = useVisualCapture(API);
+  const speaking =
+    speech.content?.kind === "source" &&
+    (speech.status === "loading" ||
+      speech.status === "playing" ||
+      speech.needsPlay);
+  const [capabilities, setCapabilities] = useState({
+    visualEnabled: false,
+    visualAllowedOrigins: [] as string[],
+    elevenlabsTts: { available: false },
+  });
+  const pageTaskGeneration = useRef(0);
+  const readerInteractionRevision = useRef(0);
+  const adoptedVisual = useRef<{
+    requestId: string;
+    snapshotId: string;
+    captureId: string;
+  } | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch(API + "/api/config", { signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((value) => {
+        if (value && !controller.signal.aborted)
+          setCapabilities({
+            visualEnabled: value.visualEnabled === true,
+            visualAllowedOrigins: Array.isArray(value.visualAllowedOrigins)
+              ? value.visualAllowedOrigins
+              : [],
+            elevenlabsTts: {
+              available: value.elevenlabsTts?.available === true,
+            },
+          });
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
   const [changed, setChanged] = useState(false);
   const [reading, setReading] = useState<DomBlock | null>(null);
   const [saved, setSaved] = useState<{
@@ -144,10 +193,39 @@ export default function App() {
       abort.current?.abort();
       loadAbort.current?.abort();
       if (updateTimer.current) clearTimeout(updateTimer.current);
-      speechSynthesis?.cancel();
+      speech.stop();
     };
   }, []);
+  function invalidateVisualWork() {
+    pageTaskGeneration.current++;
+    adoptedVisual.current = null;
+    visual.cancel(true);
+    speech.stop();
+  }
   function acceptPage(p: PageSnapshot) {
+    invalidateVisualWork();
+    installPage(p);
+  }
+  // Adopting the first streamed snapshot must not abort its own visual request.
+  function adoptVisualSnapshot(
+    event: Extract<VisualEvent, { type: "snapshot" }>,
+    generation: number,
+  ) {
+    if (pageTaskGeneration.current !== generation) return;
+    adoptedVisual.current = {
+      requestId: event.requestId,
+      snapshotId: event.snapshotId,
+      captureId: event.captureId,
+    };
+    speech.stop();
+    installPage(event.page);
+    loadingSource.current = false;
+    setStatus(
+      `${event.page.blocks.length} source blocks captured. Visual analysis continues without moving your reading.`,
+    );
+  }
+  function installPage(p: PageSnapshot) {
+    setHeldVisualOrder(null);
     sourceSession.current++;
     refreshingPreview.current = null;
     setRefreshing(false);
@@ -203,7 +281,12 @@ export default function App() {
           ? value.sourceTabId
           : extensionSource.current.tabId;
       extensionSource.current = { revision, tabId };
-      if (value.snapshot === null && ["capturing", "loading", "unavailable", "idle"].includes(String(value.captureStatus))) {
+      if (
+        value.snapshot === null &&
+        ["capturing", "loading", "unavailable", "idle"].includes(
+          String(value.captureStatus),
+        )
+      ) {
         epoch.current++;
         abort.current?.abort();
         ranking.current = false;
@@ -217,7 +300,11 @@ export default function App() {
         setResult(null);
         setUrl("");
         setBusy(null);
-        setStatus(value.captureStatus === "unavailable" ? "This browser page cannot be captured." : "Opening the current browser page…");
+        setStatus(
+          value.captureStatus === "unavailable"
+            ? "This browser page cannot be captured."
+            : "Opening the current browser page…",
+        );
       }
       if (value.snapshot) {
         const newDocument = tabId !== capturedTabId.current;
@@ -228,7 +315,13 @@ export default function App() {
       else if ("captureError" in value) setError("");
     };
     chrome.storage.session
-      .get(["snapshot", "captureError", "sourceRevision", "sourceTabId", "captureStatus"])
+      .get([
+        "snapshot",
+        "captureError",
+        "sourceRevision",
+        "sourceTabId",
+        "captureStatus",
+      ])
       .then(acceptStored);
     const listener = (
       changes: Record<string, chrome.storage.StorageChange>,
@@ -253,6 +346,7 @@ export default function App() {
     };
   }, []);
   async function loadExample(path = "/example.html", classify = false) {
+    invalidateVisualWork();
     const generation = ++loadGeneration.current;
     loadingSource.current = true;
     sourceSession.current++;
@@ -294,6 +388,7 @@ export default function App() {
     }
   }
   async function loadUrl(nextUrl?: string) {
+    invalidateVisualWork();
     const raw = (nextUrl || url).trim();
     try {
       const local = new URL(raw, location.origin);
@@ -348,7 +443,12 @@ export default function App() {
     }
   }
   async function rank(target = page, context?: ReadContext) {
-    if (!target) return;
+    if (
+      !target ||
+      (!target.blocks.length && !context) ||
+      visual.state.rankingPending
+    )
+      return;
     ranking.current = true;
     nextRankAt.current = Date.now() + 5000;
     const token = ++epoch.current;
@@ -379,6 +479,7 @@ export default function App() {
       )
         return;
       baseline.current = target;
+      setHeldVisualOrder(null);
       setResult(data);
       const order = readingOrder(target, data);
       if (context) {
@@ -482,6 +583,9 @@ export default function App() {
     }
   }, []);
   function updateTask(value: string) {
+    setHeldVisualOrder(null);
+    invalidateVisualWork();
+    loadingSource.current = false;
     epoch.current++;
     abort.current?.abort();
     ranking.current = false;
@@ -500,7 +604,11 @@ export default function App() {
       }, 700);
     }
   }
-  const ordered = page ? readingOrder(page, result) : [];
+  const ordered = page
+    ? heldVisualOrder?.snapshotId === page.id
+      ? heldVisualOrder.blocks
+      : readingOrder(page, result)
+    : [];
   const current =
     reading || page?.blocks.find((b) => b.id === selected) || ordered[0];
   const selectedIndex = ordered.findIndex((b) => b.id === current?.id);
@@ -560,6 +668,7 @@ export default function App() {
     processPending.current();
   };
   function cancelReadingRequest() {
+    readerInteractionRevision.current++;
     epoch.current++;
     abort.current?.abort();
     ranking.current = false;
@@ -580,7 +689,8 @@ export default function App() {
     setOffset(0);
     setCellOffset(0);
     setStatus(`Reading ${block.role}: ${block.text}`);
-    if (speaking) speak(block.text);
+    if (speaking) speak(block.text, block);
+    else speech.stop();
   }
   function pan(direction: number) {
     cancelReadingRequest();
@@ -592,25 +702,108 @@ export default function App() {
     );
     setCellOffset(0);
   }
-  function speak(value = text) {
-    if (!("speechSynthesis" in window)) {
-      setError(
-        "This browser does not support speech. The text output works with your screen reader.",
-      );
-      return;
-    }
-    speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(value);
-    utterance.lang = "en-US";
-    utterance.rate = 0.95;
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => setSpeaking(false);
-    setSpeaking(true);
-    speechSynthesis.speak(utterance);
+  function speak(value = text, block = current) {
+    if (!block) return;
+    readerInteractionRevision.current++;
+    void speech.speak(value, {
+      kind: "source",
+      id: `${pageTaskGeneration.current}:${block.id}:${block.text}`,
+    });
   }
   function stopSpeech() {
-    speechSynthesis.cancel();
-    setSpeaking(false);
+    speech.stop();
+  }
+  useEffect(() => {
+    const expected = current
+      ? `${pageTaskGeneration.current}:${current.id}:${current.text}`
+      : "";
+    if (speech.content?.kind === "source" && speech.content.id !== expected)
+      speech.stop();
+  }, [page?.id, current?.id, current?.text, task, speech.content?.id]);
+  async function openVisualCapture() {
+    if (extension || !capabilities.visualEnabled || task.trim().length < 3)
+      return;
+    const generation = ++pageTaskGeneration.current;
+    adoptedVisual.current = null;
+    loadGeneration.current++;
+    loadAbort.current?.abort();
+    loadingSource.current = true;
+    sourceSession.current++;
+    epoch.current++;
+    abort.current?.abort();
+    ranking.current = false;
+    pendingUpdate.current = null;
+    if (updateTimer.current) clearTimeout(updateTimer.current);
+    speech.stop();
+    setBusy(null);
+    setError("");
+    let interactionAtSnapshot = readerInteractionRevision.current;
+    let captured: PageSnapshot | null = null;
+    const raw = url.trim();
+    try {
+      await visual.start(
+        raw.startsWith("http") ? raw : "https://" + raw,
+        task,
+        (event) => {
+          if (generation !== pageTaskGeneration.current) return;
+          if (event.type === "snapshot") {
+            captured = event.page;
+            interactionAtSnapshot = readerInteractionRevision.current;
+            adoptVisualSnapshot(event, generation);
+            return;
+          }
+          const adopted = adoptedVisual.current;
+          if (
+            !adopted ||
+            adopted.requestId !== event.requestId ||
+            adopted.snapshotId !== event.snapshotId ||
+            adopted.captureId !== event.captureId ||
+            pageRef.current?.id !== event.snapshotId
+          )
+            return;
+          if (event.type === "dom-ranked" && captured) {
+            setResult(event.classification);
+            setLastCall(event.classification);
+            setCalls((n) => n + 1);
+            baseline.current = captured;
+            if (readerInteractionRevision.current === interactionAtSnapshot) {
+              const first = readingOrder(captured, event.classification)[0];
+              setReading(first || null);
+              setSelected(first?.id || "");
+              setOffset(0);
+              setCellOffset(0);
+            } else
+              setHeldVisualOrder({
+                snapshotId: captured.id,
+                blocks: captured.blocks,
+              });
+            setStatus(
+              "Jev classified the captured source text. Your reading position is held if you have started reading.",
+            );
+          } else if (event.type === "visual-evidence") {
+            // Evidence only updates the separate details panel; source, queue and offsets are untouched.
+            setStatus(
+              `${event.evidence.length} visual details available. Open them when you choose.`,
+            );
+          } else if (event.type === "done") {
+            setStatus(
+              `Visual analysis ${event.status}. Your source text and reading position remain available.`,
+            );
+          }
+        },
+      );
+    } finally {
+      if (generation === pageTaskGeneration.current)
+        loadingSource.current = false;
+    }
+  }
+  function cancelVisualCapture() {
+    adoptedVisual.current = null;
+    loadingSource.current = false;
+    visual.cancel();
+    setStatus(
+      "Visual analysis cancelled. Captured text and details remain available.",
+    );
   }
   async function captureTab() {
     setError("");
@@ -622,7 +815,7 @@ export default function App() {
   }
   async function refreshSource() {
     const source = pageRef.current;
-    if (!source || refreshing) return;
+    if (!source || refreshing || source.source === "browserbase") return;
     setRefreshing(true);
     const navigation = source.url;
     const sourceToken = sourceSession.current;
@@ -674,6 +867,7 @@ export default function App() {
   }
   function resume() {
     if (!saved) return;
+    speech.stop();
     cancelReadingRequest();
     setReading(saved.block);
     setSelected(saved.block.id);
@@ -720,6 +914,7 @@ export default function App() {
     } else if (m.type === "navigate" && typeof m.url === "string") {
       void loadUrl(m.url);
     } else if (m.type === "snapshot") {
+      if (visual.state.busy) return;
       const previous = pageRef.current;
       const incoming = m.page as PageSnapshot;
       if (!Array.isArray(incoming?.blocks)) return;
@@ -804,12 +999,14 @@ export default function App() {
     [],
   );
   const usage = lastCall?.usage as
-    { input_tokens?: number; output_tokens?: number } | undefined;
+    | { input_tokens?: number; output_tokens?: number }
+    | undefined;
   const historical =
     current &&
     page?.blocks.find((b) => b.id === current.id)?.text !== current.text;
 
   async function readPage() {
+    if (visual.state.rankingPending || visual.state.busy) return;
     if (extension) {
       if (page) await rank();
       else await captureTab();
@@ -1058,6 +1255,10 @@ export default function App() {
                     onClick={() => void readPage()}
                     disabled={
                       busy !== null ||
+                      visual.state.busy ||
+                      (page?.source === "browserbase" &&
+                        page.blocks.length === 0 &&
+                        url.trim() === page.url) ||
                       task.trim().length < 3 ||
                       !url.trim() ||
                       (!!frame && !frameReady)
@@ -1076,6 +1277,40 @@ export default function App() {
                   </button>
                 </div>
               </section>
+              {!extension && capabilities.visualEnabled && (
+                <div className="visual-controls">
+                  <button
+                    className="subtle"
+                    onClick={() => void openVisualCapture()}
+                    disabled={
+                      !!busy ||
+                      visual.state.busy ||
+                      task.trim().length < 3 ||
+                      !url.trim()
+                    }
+                  >
+                    Open with visual context
+                  </button>
+                  {visual.state.busy && (
+                    <button className="subtle" onClick={cancelVisualCapture}>
+                      Cancel visual capture
+                    </button>
+                  )}
+                  <span className="coverage">
+                    New remote capture · public demo sites
+                  </span>
+                  {capabilities.visualAllowedOrigins.length > 0 && (
+                    <details>
+                      <summary>Supported demo sites</summary>
+                      <ul>
+                        {capabilities.visualAllowedOrigins.map((origin) => (
+                          <li key={origin}>{origin}</li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </div>
+              )}
               {!extension && (
                 <div className="under-input">
                   <button disabled={!!busy} onClick={() => void loadExample()}>
@@ -1115,7 +1350,11 @@ export default function App() {
                       </span>
                       <button
                         disabled={
-                          !page || refreshing || page.source === "example"
+                          !page ||
+                          refreshing ||
+                          visual.state.busy ||
+                          page.source === "example" ||
+                          page.source === "browserbase"
                         }
                         aria-label="Refresh source page"
                         onClick={() => void refreshSource()}
@@ -1136,7 +1375,28 @@ export default function App() {
                         <ArrowUpRight size={20} />
                       </button>
                     </div>
-                    {frame ? (
+                    {page?.source === "browserbase" ? (
+                      <div className="source-block-list">
+                        <p className="source-capture-note">
+                          Browserbase · new remote capture · {page.capturedAt}
+                        </p>
+                        {page.blocks.length ? (
+                          page.blocks.map((block) => (
+                            <button
+                              key={block.id}
+                              onClick={() => readBlock(block)}
+                            >
+                              {block.text}
+                            </button>
+                          ))
+                        ) : (
+                          <p>
+                            No source text blocks. Available descriptions appear
+                            in Visual details.
+                          </p>
+                        )}
+                      </div>
+                    ) : frame ? (
                       <iframe
                         data-token={frame.token}
                         ref={iframe}
@@ -1256,6 +1516,9 @@ export default function App() {
                     readOnly
                     value={line}
                     placeholder="Waiting for a web page."
+                    onFocus={() => {
+                      readerInteractionRevision.current++;
+                    }}
                     aria-label="Stable reading output"
                     aria-describedby={
                       current?.context ? "reading-context" : undefined
@@ -1291,7 +1554,7 @@ export default function App() {
                     </button>
                     <button
                       className="listen"
-                      disabled={!page}
+                      disabled={!current}
                       onClick={() => (speaking ? stopSpeech() : speak())}
                     >
                       {speaking ? <VolumeX size={22} /> : <Volume2 size={22} />}{" "}
@@ -1304,7 +1567,8 @@ export default function App() {
                     Previous line
                   </button>
                   <span>
-                    {chars.length ? offset + 1 : 0}–{Math.min(offset + cells, chars.length)}
+                    {chars.length ? offset + 1 : 0}–
+                    {Math.min(offset + cells, chars.length)}
                   </span>
                   <button
                     onClick={() => pan(1)}
@@ -1330,7 +1594,7 @@ export default function App() {
                     {updateSummary}
                   </p>
                 )}
-                {extension && current && (
+                {extension && page?.source === "extension" && current && (
                   <button
                     className="source-link"
                     onClick={() =>
@@ -1351,15 +1615,70 @@ export default function App() {
             blocks={ordered}
             results={result?.snapshotId === page?.id ? result : null}
             currentId={current?.id}
-            busy={busy === "rank"}
+            busy={busy === "rank" || visual.state.rankingPending}
             pending={!result || result.snapshotId !== page?.id}
             queued={!!pendingUpdate.current}
+            retainedOrder={heldVisualOrder?.snapshotId === page?.id}
             onSelect={(block) => {
               readBlock(block);
               setActiveTab("read");
             }}
           />
         </div>
+        <div className="voice-controls">
+          <label htmlFor="voice-provider">Voice provider</label>
+          <select
+            id="voice-provider"
+            value={speech.provider}
+            onChange={(e) =>
+              speech.setProvider(e.target.value as "browser" | "elevenlabs")
+            }
+          >
+            <option value="browser">Browser voice</option>
+            {capabilities.elevenlabsTts.available && (
+              <option value="elevenlabs">ElevenLabs</option>
+            )}
+          </select>
+          {speech.status === "loading" && (
+            <span role="status">Preparing audio…</span>
+          )}
+          {speech.content &&
+            (speech.status === "loading" ||
+              speech.status === "playing" ||
+              speech.needsPlay) && (
+              <button className="subtle" onClick={stopSpeech}>
+                Stop audio
+              </button>
+            )}
+          {speech.content?.kind === "source" && speech.needsPlay && (
+            <button className="subtle" onClick={() => void speech.retryPlay()}>
+              Play audio
+            </button>
+          )}
+          {speech.content?.kind === "source" && speech.error && (
+            <div role="alert">
+              <p>{speech.error}</p>
+              {speech.provider === "elevenlabs" && (
+                <button
+                  className="subtle"
+                  onClick={() => speech.setProvider("browser")}
+                >
+                  Use browser voice
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+        {!extension && (
+          <VisualDetails
+            key={visual.state.requestId || "none"}
+            state={visual.state}
+            speech={speech}
+            onInteract={() => {
+              readerInteractionRevision.current++;
+            }}
+          />
+        )}
         <div className="live-status sr-only" role="status" aria-live="polite">
           {status}
         </div>
@@ -1447,8 +1766,8 @@ export default function App() {
                 </ol>
                 <p className="note">
                   Website access lets Brailly follow the active tab. Close the
-                  panel to stop. Passwords and input values are excluded.
-                  Chrome internal pages and closed shadow roots are unavailable.
+                  panel to stop. Passwords and input values are excluded. Chrome
+                  internal pages and closed shadow roots are unavailable.
                   Install as an unpacked extension.
                 </p>
               </>

@@ -138,12 +138,12 @@ export function validateDomResponse(raw:unknown, page:PageSnapshot, task:string,
   };
 }
 
-export async function classifyDom(page:PageSnapshot, task:string, key:string, model:string, context?:ReadContext) {
+export async function classifyDom(page:PageSnapshot, task:string, key:string, model:string, context?:ReadContext, signal?:AbortSignal) {
   const request = createDomRequest(page, task, model, context);
   const start = performance.now();
   const response = await fetch('https://api.typesafe.ai/v1/systemone', {
     method:'POST', headers:{Authorization:`Bearer ${key}`, 'Content-Type':'application/json'},
-    body:JSON.stringify(request), signal:AbortSignal.timeout(20000),
+    body:JSON.stringify(request), signal:signal ? AbortSignal.any([signal, AbortSignal.timeout(20000)]) : AbortSignal.timeout(20000),
   });
   if (!response.ok) throw new Error(`Jev returned HTTP ${response.status}. ${response.status === 401
     ? 'Check the API key.' : response.status === 402

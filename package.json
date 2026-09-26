@@ -12,6 +12,7 @@
     "build:extension": "node scripts/build-extension.mjs"
   },
   "dependencies": {
+    "@browserbasehq/stagehand": "4.1.0",
     "@phosphor-icons/react": "^2.1.10",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
@@ -19,7 +20,7 @@
     "lucide-react": "^0.468.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "zod": "^4.1.5"
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

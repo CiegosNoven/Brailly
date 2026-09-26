@@ -10,6 +10,7 @@ type Props = {
   onSelect: (block: DomBlock) => void;
   pending: boolean;
   queued?: boolean;
+  retainedOrder?: boolean;
 };
 
 export default function ReadingQueue({
@@ -20,6 +21,7 @@ export default function ReadingQueue({
   onSelect,
   pending,
   queued,
+  retainedOrder,
 }: Props) {
   const headingId = useId();
   const scores = new Map(
@@ -35,7 +37,9 @@ export default function ReadingQueue({
         ? "Page changed · update queued"
         : pending || !results
           ? "Page order · awaiting Jev"
-          : "Ready · highest relevance first";
+          : retainedOrder
+            ? "Ready · source order retained while reading"
+            : "Ready · highest relevance first";
 
   return (
     <section className="queue-panel" aria-labelledby={headingId}>

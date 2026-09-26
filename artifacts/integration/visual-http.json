@@ -1,0 +1,74 @@
+{
+  "checkedAt": "2026-09-26T21:38:23.206Z",
+  "url": "https://www.dublinairport.com/flight-information/live-departures",
+  "task": "Find the current flight status and gate for a flight to Madrid.",
+  "httpStatus": 200,
+  "mime": "application/x-ndjson; charset=utf-8",
+  "finalUrl": "https://www.dublinairport.com/flight-information/live-departures",
+  "title": "Live Flight Departure Times and Updates | Dublin Airport",
+  "blocks": 60,
+  "sourceSample": [
+    "Go to homepage",
+    "Search",
+    "Cart",
+    "Log In",
+    "Flights"
+  ],
+  "events": [
+    {
+      "type": "snapshot",
+      "atMs": 3436
+    },
+    {
+      "type": "stage-error",
+      "atMs": 3436
+    },
+    {
+      "type": "stage-error",
+      "atMs": 3436
+    },
+    {
+      "type": "done",
+      "atMs": 3756
+    }
+  ],
+  "coverage": {
+    "totalCandidates": 50,
+    "includedCandidates": 12,
+    "inspected": 0,
+    "sourceAlt": 0,
+    "skipped": 0,
+    "uninspected": 12,
+    "hidden": 38,
+    "truncated": true,
+    "domSkipped": false,
+    "blockedRequests": null,
+    "unsupported": [
+      "CSS backgrounds",
+      "iframes",
+      "shadow DOM",
+      "animated images"
+    ]
+  },
+  "metrics": {
+    "totalMs": 3733,
+    "loadMs": 3401,
+    "domMs": 1,
+    "selectionMs": 0,
+    "visionMs": 0,
+    "priorityMs": 0
+  },
+  "status": "partial",
+  "sessionClosed": true,
+  "failures": [
+    {
+      "stage": "dom",
+      "message": "Text ranking is unavailable; the source text remains readable."
+    },
+    {
+      "stage": "selection",
+      "message": "Visual selection is unavailable; no speculative inspection was started."
+    }
+  ],
+  "verification": "Real Browserbase through local HTTP NDJSON route and production client parser. This does not verify streaming on the deployed hosting platform."
+}

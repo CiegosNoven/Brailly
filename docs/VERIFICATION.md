@@ -1,6 +1,31 @@
 # Brailly verification
 
-Local checks: 51 unit tests and 22 browser tests pass. Production build passes. Browser tests use explicit test-only model responses; live Jev checks are separate.
+## Integration run · 26 September 2026
+
+The integration was built on the updated `cfd90d6` codebase after preserving the local work and pulling upstream. At this checkpoint, `npm test` passes 93 tests, `npx tsc --noEmit` passes, and all 34 Playwright tests pass (42.2 seconds). This includes the 22 existing browser regressions and 12 new Browserbase/TTS coordination cases. The production build also passed.
+
+The new browser tests use explicitly labelled test-only streams, model responses and audio adapters. They verify behavior under controlled late results; they are not evidence of provider accuracy or availability. Both event arrival orders preserve a nonzero text offset, Braille page 2, queue order and keyboard focus. Tests also cover closing a visual dialog and returning focus, obsolete task cancellation, cancel/disconnect after snapshot, image-only captures without empty DOM ranking, normalized tasks, Stop while TTS is loading, closing a speaking detail, separately listening to recognized text, starting speech before visual ranking, and switching source blocks while audio plays. Axe reports no violations in the new visual dialog.
+
+| Integration check | Result | Evidence and scope |
+| --- | --- | --- |
+| Real public-page capture and ranking | PASS, bounded | `artifacts/integration/visual-http-achladeal.com.json`: Achla Deal, 60 original blocks scored by Jev 1.13; the literal Madrid offer price `555₪` ranked first (2.85/3). Of 328 visual elements, 12 were inventoried and two inspected; their descriptions received low relevance scores (0.02 and 0.04). The job had no stage errors and closed the session, but correctly reported partial coverage because ten candidates remained uninspected. No USD currency conversion or purchase was performed. |
+| ElevenLabs provider | PASS | `artifacts/integration/elevenlabs.json`: actual HTTP 200, `audio/mpeg`, 75,695 bytes with MP3 signature, 80 selected characters, `eleven_multilingual_v2`, 6,555 ms. No API key or audio payload is in the evidence file. |
+| ElevenLabs through reader | PASS | `artifacts/integration/reader-speech.json`: actual `/api/tts` HTTP 200, 1,119 ms, decoded audio duration 1.254 seconds, playback time advanced, ready state 4 and no media error. This was Chromium headless playback, not a listening-quality assessment. |
+| Reproducible visual fixture | PASS | `public/visual-demo.html` has separate map and promotion SVGs, original hours/price text, and no scripts; visual inspection found no horizontal overflow. `public/visual-only.html` exercises a page with a diagram and no original source blocks. |
+| Full visual pipeline with real providers | PASS | `artifacts/visual-live-fixture-jev.json`: real Browserbase, Jev 1.13 and Stagehand 4.1.0 Model Gateway. Jev ranked 10 original blocks, selected the map (`INSPECT`) and skipped the promotional banner. Vision described the east entrance via Garden Lane ramp and front-door stairs; Jev scored it 2.00/3 (`NEXT`). Completed in 7,422 ms; session closed. The fixture HTML was deliberately injected into a real remote session at example.com; this is not a live museum site. Gateway did not return a resolved model name (`null`). |
+| Task-dependent real selection | PASS | `artifacts/visual-live-fixture-discounts.json`: changing the controlled-fixture task to discounts made Jev skip the map and inspect the banner. Recognized text included “20% OFF POSTERS” and `HARBOR20`; relevance was 2.89/3 (`NOW`). Completed in 6,939 ms with session closed. These are observed decisions, not fixed rules or guarantees for another run. |
+| Local HTTP progressive delivery | PASS | The real Achla run delivered `snapshot` at 6,317 ms, DOM ranking at 6,733 ms, visual evidence at 15,641 ms and terminal at 16,057 ms through the local HTTP endpoint and production client parser. A separate server test also proves snapshot flush while Jev work is pending. Hosting-platform streaming remains unverified. |
+| Dublin flight data | LIMITED | `artifacts/visual-live-dublin.json`: page shell captured, 60 source blocks, 3,802 ms and session closed. The capture contained “Loading flight list...”; specific departure/gate data was not verified. Third-party asset restrictions and render timing limit this demo. |
+| Deployment | PENDING | New code has not been deployed. Vercel progressive NDJSON delivery and effective deployment/provider spend limits remain to be verified. |
+
+Reproduce the full controlled visual pipeline with `npx tsx scripts/verify-visual-real.ts fixture-jev`; `npx tsx scripts/verify-visual-real.ts fixture` tests vision directly. `npx tsx scripts/verify-visual-real.ts fixture-discounts` runs the alternate task. Public-page modes and `scripts/verify-visual-http.ts` record bounded real-site runs. Earlier `visual-live-achla.json`, `visual-live-dublin.json` and `integration/visual-http.json` artifacts were captured before local Jev configuration and intentionally record partial results; they are retained as failure-path evidence. Reproduce the audio checks with `npx tsx scripts/verify-elevenlabs.ts` and, against an already running enabled local server, `BRAILLY_SMOKE_URL=http://127.0.0.1:5183 npx tsx scripts/verify-reader-speech.ts`. These are opt-in real provider calls. The server keys stay in `.env`; integration flags default off in `.env.example`.
+
+Remaining coverage includes authenticated sessions, vision of extension captures, CSS backgrounds, iframe/shadow DOM visual extraction, animated visual content, production quota enforcement, subjective voice quality, physical Braille devices and user validation. Browserbase's strict demo-origin policy can block external assets; a bounded capture does not imply full website support.
+
+## Earlier upstream verification
+
+The following evidence was retained from the upstream documentation (51 unit tests and 22 browser tests at that checkpoint). Real-site observations here were not re-run as part of the Browserbase/TTS mock suite. The new live Jev integration evidence is recorded separately above.
+
 
 | Check | Result | Evidence |
 | --- | --- | --- |

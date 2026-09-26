@@ -1,0 +1,13 @@
+{
+  "checkedAt": "2026-09-26T21:36:16.867Z",
+  "base": "http://127.0.0.1:5183",
+  "httpStatus": 200,
+  "mime": "audio/mpeg",
+  "httpMs": 1119,
+  "manualPlay": false,
+  "durationSeconds": 1.253875,
+  "currentTimeSeconds": 0.02322,
+  "readyState": 4,
+  "error": null,
+  "verification": "Real server and ElevenLabs response decoded and advanced in Chromium HTMLAudioElement. Headless playback; audible speaker quality not evaluated."
+}

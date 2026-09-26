@@ -1,0 +1,440 @@
+{
+  "checkedAt": "2026-09-26T21:41:02.202Z",
+  "mode": "fixture-jev",
+  "stagehandVersion": "4.1.0",
+  "jevConfigured": true,
+  "fixture": "Controlled repository HTML injected into a fresh real Browserbase session at example.com; not a live museum website.",
+  "task": "Find the museum opening hours and the accessible entrance",
+  "events": [
+    {
+      "requestId": "48f4a98c-246c-404c-b9ee-104081a31903",
+      "snapshotId": "2b9ed1b8-68b2-4414-b3ea-d247692fae32",
+      "captureId": "1ee1f7ad-f9ad-4c0f-aaec-e8f58ac834aa",
+      "sequence": 1,
+      "type": "snapshot",
+      "page": {
+        "id": "2b9ed1b8-68b2-4414-b3ea-d247692fae32",
+        "url": "https://example.com/",
+        "title": "Harbor Museum · Visual access demo",
+        "blocks": [
+          {
+            "id": "b1588563961",
+            "tag": "p",
+            "role": "text",
+            "region": "main",
+            "text": "Brailly simulation · public visual fixture",
+            "order": 0
+          },
+          {
+            "id": "b2915955298",
+            "tag": "h1",
+            "role": "heading",
+            "region": "main",
+            "text": "The Harbor Museum",
+            "order": 1
+          },
+          {
+            "id": "b1234947894",
+            "tag": "p",
+            "role": "text",
+            "region": "main",
+            "text": "Explore the history of the harbor in galleries, a sculpture garden, and a waterside café. This is a controlled demonstration page, not a real museum or travel advisory.",
+            "order": 2
+          },
+          {
+            "id": "b2115769815",
+            "tag": "h2",
+            "role": "heading",
+            "region": "main",
+            "text": "Plan your visit",
+            "order": 3
+          },
+          {
+            "id": "b2565621095",
+            "tag": "p",
+            "role": "text",
+            "region": "main",
+            "text": "Open Tuesday–Sunday, 10 am–6 pm. Closed Mondays. Adult admission is $18; visitors under 16 enter free. The ticket includes all permanent galleries and the sculpture garden. Allow about two hours for your visit. Last gallery admission is at 5 pm, and the café closes at 5:30 pm. Keep this paragraph selected while visual details arrive to demonstrate that line and Braille position stay unchanged.",
+            "order": 4
+          },
+          {
+            "id": "b3639863980",
+            "tag": "h2",
+            "role": "heading",
+            "region": "main",
+            "text": "Accessibility",
+            "order": 5
+          },
+          {
+            "id": "b1931837436",
+            "tag": "p",
+            "role": "text",
+            "region": "main",
+            "text": "The diagram below shows the entrances and outdoor routes. Use the map to find the step-free entrance. Its short image label does not describe the route.",
+            "order": 6
+          },
+          {
+            "id": "b3296590505",
+            "tag": "h2",
+            "role": "heading",
+            "region": "main",
+            "text": "Museum shop promotion",
+            "order": 7
+          },
+          {
+            "id": "b1115078573",
+            "tag": "p",
+            "role": "text",
+            "region": "main",
+            "text": "The shop publishes a seasonal offer in the banner below. It is separate from admission and access information.",
+            "order": 8
+          },
+          {
+            "id": "b1814297384",
+            "tag": "a",
+            "role": "link",
+            "region": "main",
+            "text": "Return to the interactive museum demo",
+            "href": "https://example.com/example.html",
+            "order": 9
+          }
+        ],
+        "capturedAt": "2026-09-26T21:41:04.957Z",
+        "source": "browserbase",
+        "totalCandidates": 10,
+        "truncated": false
+      },
+      "candidates": [
+        {
+          "candidateId": "v1",
+          "kind": "svg",
+          "altStatus": "not-applicable",
+          "sourceAltText": null,
+          "title": "",
+          "caption": "Site map — entrances and routes around the museum.",
+          "accessibleName": "Museum site map",
+          "nearbyHeading": "",
+          "nearbyText": "HARBOR STREET GARDEN LANE MUSEUM Galleries and café Front door: STAIRS STEP-FREE ENTRANCE East door via Garden Lane ramp N ↑ Sculpture garden Diagram for demonstration only · not to scale Site map — entrances and routes around the museum.",
+          "control": null,
+          "width": 926,
+          "height": 516,
+          "x": 170,
+          "y": 678,
+          "hidden": false,
+          "locator": "[data-brailly-visual-id=\"v1\"]",
+          "signature": "e8083d6a",
+          "asset": ""
+        },
+        {
+          "candidateId": "v2",
+          "kind": "svg",
+          "altStatus": "not-applicable",
+          "sourceAltText": null,
+          "title": "",
+          "caption": "Seasonal museum shop advertisement.",
+          "accessibleName": "Museum shop offer",
+          "nearbyHeading": "",
+          "nearbyText": "WEEKEND AT THE MUSEUM SHOP 20% OFF POSTERS Use code HARBOR20 · this Saturday only Seasonal museum shop advertisement.",
+          "control": null,
+          "width": 926,
+          "height": 247,
+          "x": 170,
+          "y": 1452,
+          "hidden": false,
+          "locator": "[data-brailly-visual-id=\"v2\"]",
+          "signature": "42e6362c",
+          "asset": ""
+        }
+      ],
+      "coverage": {
+        "totalCandidates": 2,
+        "includedCandidates": 2,
+        "inspected": 0,
+        "sourceAlt": 0,
+        "skipped": 0,
+        "uninspected": 2,
+        "hidden": 0,
+        "truncated": false,
+        "domSkipped": false,
+        "blockedRequests": null,
+        "unsupported": [
+          "CSS backgrounds",
+          "iframes",
+          "shadow DOM",
+          "animated images"
+        ]
+      }
+    },
+    {
+      "requestId": "48f4a98c-246c-404c-b9ee-104081a31903",
+      "snapshotId": "2b9ed1b8-68b2-4414-b3ea-d247692fae32",
+      "captureId": "1ee1f7ad-f9ad-4c0f-aaec-e8f58ac834aa",
+      "sequence": 2,
+      "type": "visual-decisions",
+      "decisions": [
+        {
+          "candidateId": "v1",
+          "decision": "INSPECT",
+          "confidence": 0.88,
+          "probabilities": {
+            "INSPECT": 0.91,
+            "SKIP": 0.06,
+            "UNKNOWN": 0.03
+          },
+          "reason": "inspect",
+          "model": "jev-1.13.0"
+        },
+        {
+          "candidateId": "v2",
+          "decision": "SKIP",
+          "confidence": 0.97,
+          "probabilities": {
+            "INSPECT": 0.01,
+            "SKIP": 0.98,
+            "UNKNOWN": 0.01
+          },
+          "reason": "irrelevant",
+          "model": "jev-1.13.0"
+        }
+      ]
+    },
+    {
+      "requestId": "48f4a98c-246c-404c-b9ee-104081a31903",
+      "snapshotId": "2b9ed1b8-68b2-4414-b3ea-d247692fae32",
+      "captureId": "1ee1f7ad-f9ad-4c0f-aaec-e8f58ac834aa",
+      "sequence": 3,
+      "type": "dom-ranked",
+      "classification": {
+        "snapshotId": "2b9ed1b8-68b2-4414-b3ea-d247692fae32",
+        "task": "Find the museum opening hours and the accessible entrance",
+        "model": "jev-1.13.0",
+        "latencyMs": 191,
+        "results": [
+          {
+            "id": "b1588563961",
+            "category": "EXTRA",
+            "score": 0.02,
+            "confidence": 0.98,
+            "probabilities": {
+              "0": 0.98,
+              "1": 0.02,
+              "2": 0,
+              "3": 0
+            },
+            "categoryConfidence": 0.57,
+            "priority": "LATER"
+          },
+          {
+            "id": "b2915955298",
+            "category": "CONTENT",
+            "score": 0.85,
+            "confidence": 0.81,
+            "probabilities": {
+              "0": 0.17,
+              "1": 0.81,
+              "2": 0.02,
+              "3": 0
+            },
+            "categoryConfidence": 1,
+            "priority": "LATER"
+          },
+          {
+            "id": "b1234947894",
+            "category": "CONTENT",
+            "score": 0.79,
+            "confidence": 0.78,
+            "probabilities": {
+              "0": 0.22,
+              "1": 0.78,
+              "2": 0,
+              "3": 0
+            },
+            "categoryConfidence": 0.61,
+            "priority": "LATER"
+          },
+          {
+            "id": "b2115769815",
+            "category": "CONTENT",
+            "score": 1.47,
+            "confidence": 0.51,
+            "probabilities": {
+              "0": 0.01,
+              "1": 0.52,
+              "2": 0.46,
+              "3": 0.01
+            },
+            "categoryConfidence": 1,
+            "priority": "NEXT"
+          },
+          {
+            "id": "b2565621095",
+            "category": "CONTENT",
+            "score": 2.99,
+            "confidence": 0.99,
+            "probabilities": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 1
+            },
+            "categoryConfidence": 1,
+            "priority": "NOW"
+          },
+          {
+            "id": "b3639863980",
+            "category": "CONTENT",
+            "score": 1.9,
+            "confidence": 0.75,
+            "probabilities": {
+              "0": 0.01,
+              "1": 0.17,
+              "2": 0.74,
+              "3": 0.08
+            },
+            "categoryConfidence": 0.99,
+            "priority": "NEXT"
+          },
+          {
+            "id": "b1931837436",
+            "category": "CONTENT",
+            "score": 1.94,
+            "confidence": 0.78,
+            "probabilities": {
+              "0": 0.01,
+              "1": 0.13,
+              "2": 0.78,
+              "3": 0.08
+            },
+            "categoryConfidence": 0.97,
+            "priority": "NEXT"
+          },
+          {
+            "id": "b3296590505",
+            "category": "EXTRA",
+            "score": 0,
+            "confidence": 1,
+            "probabilities": {
+              "0": 1,
+              "1": 0,
+              "2": 0,
+              "3": 0
+            },
+            "categoryConfidence": 0.89,
+            "priority": "LATER"
+          },
+          {
+            "id": "b1115078573",
+            "category": "EXTRA",
+            "score": 0.03,
+            "confidence": 0.97,
+            "probabilities": {
+              "0": 0.98,
+              "1": 0.02,
+              "2": 0,
+              "3": 0
+            },
+            "categoryConfidence": 0.94,
+            "priority": "LATER"
+          },
+          {
+            "id": "b1814297384",
+            "category": "NAVIGATION",
+            "score": 0.81,
+            "confidence": 0.81,
+            "probabilities": {
+              "0": 0.19,
+              "1": 0.81,
+              "2": 0,
+              "3": 0
+            },
+            "categoryConfidence": 0.99,
+            "priority": "LATER"
+          }
+        ],
+        "request": {
+          "readerTask": "Find the museum opening hours and the accessible entrance",
+          "blockIds": [
+            "b1588563961",
+            "b2915955298",
+            "b1234947894",
+            "b2115769815",
+            "b2565621095",
+            "b3639863980",
+            "b1931837436",
+            "b3296590505",
+            "b1115078573",
+            "b1814297384"
+          ],
+          "source": "visual-capture",
+          "note": "Full prompt omitted from the bounded event stream."
+        },
+        "usage": {
+          "input_tokens": 6661,
+          "output_tokens": 899
+        },
+        "source": "Jev"
+      }
+    },
+    {
+      "requestId": "48f4a98c-246c-404c-b9ee-104081a31903",
+      "snapshotId": "2b9ed1b8-68b2-4414-b3ea-d247692fae32",
+      "captureId": "1ee1f7ad-f9ad-4c0f-aaec-e8f58ac834aa",
+      "sequence": 4,
+      "type": "visual-evidence",
+      "evidence": [
+        {
+          "requestId": "48f4a98c-246c-404c-b9ee-104081a31903",
+          "snapshotId": "2b9ed1b8-68b2-4414-b3ea-d247692fae32",
+          "captureId": "1ee1f7ad-f9ad-4c0f-aaec-e8f58ac834aa",
+          "candidateId": "v1",
+          "signature": "e8083d6a",
+          "sourceAltText": null,
+          "generatedDescription": "The museum map shows two entrances: the main front door on Harbor Street, accessible only by stairs, and a step-free accessible entrance at the east door reached via a ramp from Garden Lane. The step-free entrance is clearly labeled and highlighted with a green route. The map also shows the locations of the sculpture garden and major paths. Opening hours are not provided on this map.",
+          "recognizedText": "HARBOR STREET\nGARDEN LANE\nMUSEUM\nGalleries and café\nFront door: STAIRS\nSTEP-FREE ENTRANCE\nEast door via Garden Lane ramp\nN ↑\nSculpture\ngarden\nDiagram for demonstration only · not to scale",
+          "uncertainty": "Opening hours are not shown on this visual. The presence and routes to the accessible entrance are clear, but internal layout and times are not specified.",
+          "observedAt": "2026-09-26T21:41:05.613Z",
+          "method": "stagehand-vision",
+          "model": null,
+          "score": 2,
+          "confidence": 0.99,
+          "priority": "NEXT"
+        }
+      ]
+    },
+    {
+      "requestId": "48f4a98c-246c-404c-b9ee-104081a31903",
+      "snapshotId": "2b9ed1b8-68b2-4414-b3ea-d247692fae32",
+      "captureId": "1ee1f7ad-f9ad-4c0f-aaec-e8f58ac834aa",
+      "sequence": 5,
+      "type": "done",
+      "status": "complete",
+      "coverage": {
+        "totalCandidates": 2,
+        "includedCandidates": 2,
+        "inspected": 1,
+        "sourceAlt": 0,
+        "skipped": 1,
+        "uninspected": 0,
+        "hidden": 0,
+        "truncated": false,
+        "domSkipped": false,
+        "blockedRequests": null,
+        "unsupported": [
+          "CSS backgrounds",
+          "iframes",
+          "shadow DOM",
+          "animated images"
+        ]
+      },
+      "metrics": {
+        "totalMs": 7422,
+        "loadMs": 2789,
+        "domMs": 193,
+        "selectionMs": 168,
+        "visionMs": 3905,
+        "priorityMs": 99
+      },
+      "sessionClosed": true
+    }
+  ]
+}

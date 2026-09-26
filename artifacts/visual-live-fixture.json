@@ -1,0 +1,33 @@
+{
+  "checkedAt": "2026-09-26T21:37:44.597Z",
+  "mode": "fixture",
+  "stagehandVersion": "4.1.0",
+  "jevConfigured": false,
+  "fixture": "Controlled repository HTML injected into a fresh real Browserbase session at example.com; not a live museum website.",
+  "snapshot": {
+    "blocks": 10,
+    "candidates": [
+      {
+        "candidateId": "v1",
+        "kind": "svg",
+        "accessibleName": "Museum site map",
+        "signature": "e8083d6a"
+      },
+      {
+        "candidateId": "v2",
+        "kind": "svg",
+        "accessibleName": "Museum shop offer",
+        "signature": "42e6362c"
+      }
+    ]
+  },
+  "evidence": {
+    "generatedDescription": "The visible SVG labeled 'Museum site map' shows a site layout with the museum building in light brown, adjacent to 'GARDEN LANE' on the right and 'HARBOR STREET' at the bottom. The front door faces Harbor Street and is marked 'STAIRS', indicated in red and not accessible. The 'STEP-FREE ENTRANCE' is marked on the right (east) side of the museum, accessed via a green route leading from Garden Lane, with an additional label 'East door via Garden Lane ramp.' This entrance is visually distinct by green routing lines and text.",
+    "recognizedText": "HARBOR STREET\nGARDEN LANE\nMUSEUM\nGalleries and café\nFront door: STAIRS\nSTEP-FREE ENTRANCE\nEast door via Garden Lane ramp\nN ↑\nSculpture\ngarden\nDiagram for demonstration only · not to scale",
+    "uncertainty": "The map is labeled 'not to scale' and illustrative, so positions are approximate but the location of accessible entrances appears clear.",
+    "observedAt": "2026-09-26T21:37:47.874Z",
+    "model": null
+  },
+  "elapsedMs": 7084,
+  "sessionClosed": true
+}

@@ -1,0 +1,865 @@
+{
+  "checkedAt": "2026-09-26T21:38:11.254Z",
+  "mode": "achla",
+  "stagehandVersion": "4.1.0",
+  "jevConfigured": false,
+  "url": "https://achladeal.com/en",
+  "task": "Find a flight to Madrid under USD 400 departing this month",
+  "events": [
+    {
+      "requestId": "cafacf7e-e2af-464a-9e50-7f71584d07a8",
+      "snapshotId": "78c0b9b8-da65-4599-adeb-5ee750a1a28c",
+      "captureId": "797ebdc3-5b78-4f3c-9278-bb9cb3aeb420",
+      "sequence": 1,
+      "type": "snapshot",
+      "page": {
+        "id": "78c0b9b8-da65-4599-adeb-5ee750a1a28c",
+        "url": "https://achladeal.com/en",
+        "title": "Achla Deal — Flash travel deals: flights, hotels & getaways",
+        "blocks": [
+          {
+            "id": "b3271365162",
+            "tag": "a",
+            "role": "link",
+            "region": "body",
+            "text": "Skip to content",
+            "href": "https://achladeal.com/en#main-content",
+            "order": 0
+          },
+          {
+            "id": "b3104181880",
+            "tag": "a",
+            "role": "link",
+            "region": "header",
+            "text": "Achla Deal",
+            "href": "https://achladeal.com/en",
+            "order": 1
+          },
+          {
+            "id": "b823798765",
+            "tag": "button",
+            "role": "control",
+            "region": "nav",
+            "text": "Categories",
+            "order": 2
+          },
+          {
+            "id": "b24071880",
+            "tag": "a",
+            "role": "link",
+            "region": "nav",
+            "text": "Flights",
+            "href": "https://achladeal.com/en/categories/flights",
+            "order": 3
+          },
+          {
+            "id": "b2258061203",
+            "tag": "a",
+            "role": "link",
+            "region": "nav",
+            "text": "Hotels",
+            "href": "https://achladeal.com/en/categories/hotels",
+            "order": 4
+          },
+          {
+            "id": "b1464271810",
+            "tag": "a",
+            "role": "link",
+            "region": "nav",
+            "text": "Tour packages",
+            "href": "https://achladeal.com/en/packages",
+            "order": 5
+          },
+          {
+            "id": "b3954977349",
+            "tag": "a",
+            "role": "link",
+            "region": "nav",
+            "text": "Destinations",
+            "href": "https://achladeal.com/en/destinations",
+            "order": 6
+          },
+          {
+            "id": "b3161187956",
+            "tag": "a",
+            "role": "link",
+            "region": "nav",
+            "text": "Blog",
+            "href": "https://achladeal.com/en/blog",
+            "order": 7
+          },
+          {
+            "id": "b3529842571",
+            "tag": "button",
+            "role": "control",
+            "region": "header",
+            "text": "Open search",
+            "order": 8
+          },
+          {
+            "id": "b3464936389",
+            "tag": "button",
+            "role": "control",
+            "region": "header",
+            "text": "English",
+            "order": 9
+          },
+          {
+            "id": "b603010275",
+            "tag": "button",
+            "role": "control",
+            "region": "header",
+            "text": "My account",
+            "order": 10
+          },
+          {
+            "id": "b740351242",
+            "tag": "a",
+            "role": "link",
+            "region": "header",
+            "text": "Partners",
+            "href": "https://achladeal.com/partners/login?lang=en",
+            "order": 11
+          },
+          {
+            "id": "b2533170931",
+            "tag": "h1",
+            "role": "heading",
+            "region": "main",
+            "text": "Where to this time?Hot deals. Real-time prices.",
+            "order": 12
+          },
+          {
+            "id": "b3086544414",
+            "tag": "h2",
+            "role": "heading",
+            "region": "main",
+            "text": "Search flights, hotels and packages",
+            "order": 13
+          },
+          {
+            "id": "b2125207651",
+            "tag": "button",
+            "role": "tab",
+            "region": "main",
+            "text": "Flights",
+            "order": 14
+          },
+          {
+            "id": "b1480582623",
+            "tag": "button",
+            "role": "tab",
+            "region": "main",
+            "text": "Hotels",
+            "order": 15
+          },
+          {
+            "id": "b2971745169",
+            "tag": "button",
+            "role": "tab",
+            "region": "main",
+            "text": "Packages",
+            "order": 16
+          },
+          {
+            "id": "b1024767928",
+            "tag": "label",
+            "role": "text",
+            "region": "main",
+            "text": "From",
+            "order": 17
+          },
+          {
+            "id": "b1121667779",
+            "tag": "label",
+            "role": "text",
+            "region": "main",
+            "text": "To",
+            "order": 18
+          },
+          {
+            "id": "b3877354879",
+            "tag": "button",
+            "role": "control",
+            "region": "main",
+            "text": "Depart · Return",
+            "order": 19
+          },
+          {
+            "id": "b2389298947",
+            "tag": "span",
+            "role": "text",
+            "region": "main",
+            "text": "Passengers1 passengers",
+            "order": 20
+          },
+          {
+            "id": "b582571721",
+            "tag": "button",
+            "role": "control",
+            "region": "main",
+            "text": "Fewer passengers",
+            "order": 21
+          },
+          {
+            "id": "b3561912642",
+            "tag": "span",
+            "role": "text",
+            "region": "main",
+            "text": "1 passengers",
+            "order": 22
+          },
+          {
+            "id": "b239298246",
+            "tag": "button",
+            "role": "control",
+            "region": "main",
+            "text": "More passengers",
+            "order": 23
+          },
+          {
+            "id": "b2871849455",
+            "tag": "span",
+            "role": "text",
+            "region": "main",
+            "text": "277₪",
+            "context": "Flight to Alghero",
+            "order": 57
+          },
+          {
+            "id": "b794178328",
+            "tag": "span",
+            "role": "text",
+            "region": "main",
+            "text": "1,155₪",
+            "context": "Flight to Andijan",
+            "order": 64
+          },
+          {
+            "id": "b3683721664",
+            "tag": "span",
+            "role": "text",
+            "region": "main",
+            "text": "394₪",
+            "context": "Flight to Cairo",
+            "order": 71
+          },
+          {
+            "id": "b2671377238",
+            "tag": "span",
+            "role": "text",
+            "region": "main",
+            "text": "174₪",
+            "context": "Flight to Varna",
+            "order": 78
+          },
+          {
+            "id": "b752522093",
+            "tag": "div",
+            "role": "text",
+            "region": "main",
+            "text": "-23%",
+            "context": "Flight to Larnaca",
+            "order": 99
+          },
+          {
+            "id": "b1272258750",
+            "tag": "span",
+            "role": "text",
+            "region": "main",
+            "text": "109₪",
+            "context": "Flight to Larnaca",
+            "order": 103
+          },
+          {
+            "id": "b481453541",
+            "tag": "span",
+            "role": "text",
+            "region": "main",
+            "text": "115₪",
+            "context": "Flight to Palermo",
+            "order": 110
+          },
+          {
+            "id": "b3709512247",
+            "tag": "span",
+            "role": "text",
+            "region": "main",
+            "text": "134₪",
+            "context": "Flight to Catania",
+            "order": 117
+          },
+          {
+            "id": "b1011426058",
+            "tag": "div",
+            "role": "text",
+            "region": "main",
+            "text": "-26%",
+            "context": "Flight to Athens",
+            "order": 121
+          },
+          {
+            "id": "b3552992379",
+            "tag": "span",
+            "role": "text",
+            "region": "main",
+            "text": "160₪",
+            "context": "Flight to Athens",
+            "order": 125
+          },
+          {
+            "id": "b1103274551",
+            "tag": "span",
+            "role": "text",
+            "region": "main",
+            "text": "183₪",
+            "context": "Flight to Kraków",
+            "order": 132
+          },
+          {
+            "id": "b682763395",
+            "tag": "span",
+            "role": "text",
+            "region": "main",
+            "text": "186₪",
+            "context": "Flight to Rome",
+            "order": 139
+          },
+          {
+            "id": "b2926122519",
+            "tag": "div",
+            "role": "text",
+            "region": "main",
+            "text": "277₪",
+            "context": "Flight to Alghero",
+            "order": 169
+          },
+          {
+            "id": "b688812276",
+            "tag": "p",
+            "role": "text",
+            "region": "main",
+            "text": "Price updated 2m ago",
+            "context": "Flight to Alghero",
+            "order": 170
+          },
+          {
+            "id": "b3249252242",
+            "tag": "div",
+            "role": "text",
+            "region": "main",
+            "text": "1,155₪",
+            "context": "Flight to Andijan",
+            "order": 178
+          },
+          {
+            "id": "b3258923045",
+            "tag": "p",
+            "role": "text",
+            "region": "main",
+            "text": "Price updated 2m ago",
+            "context": "Flight to Andijan",
+            "order": 179
+          },
+          {
+            "id": "b1051374469",
+            "tag": "div",
+            "role": "text",
+            "region": "main",
+            "text": "1,033₪",
+            "context": "Flight to Cairo",
+            "order": 189
+          },
+          {
+            "id": "b581696077",
+            "tag": "p",
+            "role": "text",
+            "region": "main",
+            "text": "Price updated 2m ago",
+            "context": "Flight to Cairo",
+            "order": 190
+          },
+          {
+            "id": "b3939377779",
+            "tag": "div",
+            "role": "text",
+            "region": "main",
+            "text": "350₪",
+            "context": "Flight to Varna",
+            "order": 209
+          },
+          {
+            "id": "b2622474735",
+            "tag": "p",
+            "role": "text",
+            "region": "main",
+            "text": "Price updated 2m ago",
+            "context": "Flight to Varna",
+            "order": 210
+          },
+          {
+            "id": "b1466219870",
+            "tag": "div",
+            "role": "text",
+            "region": "main",
+            "text": "2,032₪",
+            "context": "Flight to Bengaluru",
+            "order": 229
+          },
+          {
+            "id": "b2026595242",
+            "tag": "p",
+            "role": "text",
+            "region": "main",
+            "text": "Price updated 2m ago",
+            "context": "Flight to Bengaluru",
+            "order": 230
+          },
+          {
+            "id": "b433106085",
+            "tag": "div",
+            "role": "text",
+            "region": "main",
+            "text": "555₪",
+            "context": "Flight to Madrid",
+            "order": 241
+          },
+          {
+            "id": "b185955949",
+            "tag": "p",
+            "role": "text",
+            "region": "main",
+            "text": "Price updated 2m ago",
+            "context": "Flight to Madrid",
+            "order": 242
+          },
+          {
+            "id": "b3359114681",
+            "tag": "div",
+            "role": "text",
+            "region": "main",
+            "text": "1,863₪",
+            "context": "Flight to New York",
+            "order": 260
+          },
+          {
+            "id": "b3229498969",
+            "tag": "p",
+            "role": "text",
+            "region": "main",
+            "text": "Price updated 2m ago",
+            "context": "Flight to New York",
+            "order": 261
+          },
+          {
+            "id": "b854450920",
+            "tag": "div",
+            "role": "text",
+            "region": "main",
+            "text": "1,425₪",
+            "context": "Flight to Mumbai",
+            "order": 279
+          },
+          {
+            "id": "b2498895192",
+            "tag": "p",
+            "role": "text",
+            "region": "main",
+            "text": "Price updated 2m ago",
+            "context": "Flight to Mumbai",
+            "order": 280
+          },
+          {
+            "id": "b35448258",
+            "tag": "div",
+            "role": "text",
+            "region": "main",
+            "text": "Round trip · Thu, Oct 22 – Sat, Oct 24",
+            "context": "Weekend in Larnaca",
+            "order": 472
+          },
+          {
+            "id": "b1446434201",
+            "tag": "span",
+            "role": "text",
+            "region": "main",
+            "text": "239₪",
+            "context": "Weekend in Larnaca",
+            "order": 473
+          },
+          {
+            "id": "b459572822",
+            "tag": "div",
+            "role": "text",
+            "region": "main",
+            "text": "Round trip · Fri, Oct 9 – Mon, Oct 12",
+            "context": "Weekend in Varna",
+            "order": 480
+          },
+          {
+            "id": "b700526781",
+            "tag": "span",
+            "role": "text",
+            "region": "main",
+            "text": "350₪",
+            "context": "Weekend in Varna",
+            "order": 481
+          },
+          {
+            "id": "b2234342729",
+            "tag": "div",
+            "role": "text",
+            "region": "main",
+            "text": "Round trip · Fri, Oct 23 – Mon, Oct 26",
+            "context": "Weekend in Budapest",
+            "order": 488
+          },
+          {
+            "id": "b2319305584",
+            "tag": "span",
+            "role": "text",
+            "region": "main",
+            "text": "398₪",
+            "context": "Weekend in Budapest",
+            "order": 489
+          },
+          {
+            "id": "b917250737",
+            "tag": "div",
+            "role": "text",
+            "region": "main",
+            "text": "Round trip · Thu, Oct 15 – Mon, Oct 19",
+            "context": "Weekend in Athens",
+            "order": 496
+          },
+          {
+            "id": "b777462056",
+            "tag": "span",
+            "role": "text",
+            "region": "main",
+            "text": "413₪",
+            "context": "Weekend in Athens",
+            "order": 497
+          }
+        ],
+        "capturedAt": "2026-09-26T21:38:17.312Z",
+        "source": "browserbase",
+        "totalCandidates": 622,
+        "truncated": true
+      },
+      "candidates": [
+        {
+          "candidateId": "v39",
+          "kind": "img",
+          "altStatus": "empty",
+          "sourceAltText": "",
+          "title": "",
+          "caption": "",
+          "accessibleName": "",
+          "nearbyHeading": "",
+          "nearbyText": "",
+          "control": null,
+          "width": 278,
+          "height": 209,
+          "x": 62,
+          "y": 1049,
+          "hidden": false,
+          "locator": "[data-brailly-visual-id=\"v39\"]",
+          "signature": "807c292e",
+          "asset": "https://achladeal.com/_next/image?url=https%3A%2F%2Fphoto.hotellook.com%2Fstatic%2Fcities%2F960x720%2FAHO.jpg&w=384&q=75"
+        },
+        {
+          "candidateId": "v42",
+          "kind": "img",
+          "altStatus": "empty",
+          "sourceAltText": "",
+          "title": "",
+          "caption": "",
+          "accessibleName": "",
+          "nearbyHeading": "",
+          "nearbyText": "",
+          "control": null,
+          "width": 278,
+          "height": 209,
+          "x": 358,
+          "y": 1049,
+          "hidden": false,
+          "locator": "[data-brailly-visual-id=\"v42\"]",
+          "signature": "9881c3c9",
+          "asset": "https://achladeal.com/_next/image?url=https%3A%2F%2Fphoto.hotellook.com%2Fstatic%2Fcities%2F960x720%2FAZN.jpg&w=384&q=75"
+        },
+        {
+          "candidateId": "v45",
+          "kind": "img",
+          "altStatus": "empty",
+          "sourceAltText": "",
+          "title": "",
+          "caption": "",
+          "accessibleName": "",
+          "nearbyHeading": "",
+          "nearbyText": "",
+          "control": null,
+          "width": 278,
+          "height": 209,
+          "x": 654,
+          "y": 1049,
+          "hidden": false,
+          "locator": "[data-brailly-visual-id=\"v45\"]",
+          "signature": "193beb71",
+          "asset": "https://achladeal.com/_next/image?url=https%3A%2F%2Fphoto.hotellook.com%2Fstatic%2Fcities%2F960x720%2FCAI.jpg&w=384&q=75"
+        },
+        {
+          "candidateId": "v48",
+          "kind": "img",
+          "altStatus": "empty",
+          "sourceAltText": "",
+          "title": "",
+          "caption": "",
+          "accessibleName": "",
+          "nearbyHeading": "",
+          "nearbyText": "",
+          "control": null,
+          "width": 278,
+          "height": 209,
+          "x": 950,
+          "y": 1049,
+          "hidden": false,
+          "locator": "[data-brailly-visual-id=\"v48\"]",
+          "signature": "83cf01b3",
+          "asset": "https://achladeal.com/_next/image?url=https%3A%2F%2Fphoto.hotellook.com%2Fstatic%2Fcities%2F960x720%2FVAR.jpg&w=384&q=75"
+        },
+        {
+          "candidateId": "v51",
+          "kind": "img",
+          "altStatus": "empty",
+          "sourceAltText": "",
+          "title": "",
+          "caption": "",
+          "accessibleName": "",
+          "nearbyHeading": "",
+          "nearbyText": "",
+          "control": null,
+          "width": 278,
+          "height": 209,
+          "x": 1246,
+          "y": 1049,
+          "hidden": false,
+          "locator": "[data-brailly-visual-id=\"v51\"]",
+          "signature": "2795d702",
+          "asset": "https://achladeal.com/_next/image?url=https%3A%2F%2Fphoto.hotellook.com%2Fstatic%2Fcities%2F960x720%2FMIL.jpg&w=384&q=75"
+        },
+        {
+          "candidateId": "v54",
+          "kind": "img",
+          "altStatus": "empty",
+          "sourceAltText": "",
+          "title": "",
+          "caption": "",
+          "accessibleName": "",
+          "nearbyHeading": "",
+          "nearbyText": "",
+          "control": null,
+          "width": 278,
+          "height": 209,
+          "x": 1542,
+          "y": 1049,
+          "hidden": false,
+          "locator": "[data-brailly-visual-id=\"v54\"]",
+          "signature": "1d14ea35",
+          "asset": "https://achladeal.com/_next/image?url=https%3A%2F%2Fphoto.hotellook.com%2Fstatic%2Fcities%2F960x720%2FVLC.jpg&w=384&q=75"
+        },
+        {
+          "candidateId": "v60",
+          "kind": "img",
+          "altStatus": "empty",
+          "sourceAltText": "",
+          "title": "",
+          "caption": "",
+          "accessibleName": "",
+          "nearbyHeading": "",
+          "nearbyText": "-23%",
+          "control": null,
+          "width": 278,
+          "height": 209,
+          "x": 62,
+          "y": 1665,
+          "hidden": false,
+          "locator": "[data-brailly-visual-id=\"v60\"]",
+          "signature": "f096ead3",
+          "asset": "https://achladeal.com/_next/image?url=https%3A%2F%2Fphoto.hotellook.com%2Fstatic%2Fcities%2F960x720%2FLCA.jpg&w=384&q=75"
+        },
+        {
+          "candidateId": "v63",
+          "kind": "img",
+          "altStatus": "empty",
+          "sourceAltText": "",
+          "title": "",
+          "caption": "",
+          "accessibleName": "",
+          "nearbyHeading": "",
+          "nearbyText": "",
+          "control": null,
+          "width": 278,
+          "height": 209,
+          "x": 358,
+          "y": 1665,
+          "hidden": false,
+          "locator": "[data-brailly-visual-id=\"v63\"]",
+          "signature": "41c7e504",
+          "asset": "https://achladeal.com/_next/image?url=https%3A%2F%2Fphoto.hotellook.com%2Fstatic%2Fcities%2F960x720%2FPMO.jpg&w=384&q=75"
+        },
+        {
+          "candidateId": "v66",
+          "kind": "img",
+          "altStatus": "empty",
+          "sourceAltText": "",
+          "title": "",
+          "caption": "",
+          "accessibleName": "",
+          "nearbyHeading": "",
+          "nearbyText": "",
+          "control": null,
+          "width": 278,
+          "height": 209,
+          "x": 654,
+          "y": 1665,
+          "hidden": false,
+          "locator": "[data-brailly-visual-id=\"v66\"]",
+          "signature": "3eca0556",
+          "asset": "https://achladeal.com/_next/image?url=https%3A%2F%2Fphoto.hotellook.com%2Fstatic%2Fcities%2F960x720%2FCTA.jpg&w=384&q=75"
+        },
+        {
+          "candidateId": "v69",
+          "kind": "img",
+          "altStatus": "empty",
+          "sourceAltText": "",
+          "title": "",
+          "caption": "",
+          "accessibleName": "",
+          "nearbyHeading": "",
+          "nearbyText": "-26%",
+          "control": null,
+          "width": 278,
+          "height": 209,
+          "x": 950,
+          "y": 1665,
+          "hidden": false,
+          "locator": "[data-brailly-visual-id=\"v69\"]",
+          "signature": "d5e23a03",
+          "asset": "https://achladeal.com/_next/image?url=https%3A%2F%2Fphoto.hotellook.com%2Fstatic%2Fcities%2F960x720%2FATH.jpg&w=384&q=75"
+        },
+        {
+          "candidateId": "v72",
+          "kind": "img",
+          "altStatus": "empty",
+          "sourceAltText": "",
+          "title": "",
+          "caption": "",
+          "accessibleName": "",
+          "nearbyHeading": "",
+          "nearbyText": "",
+          "control": null,
+          "width": 278,
+          "height": 209,
+          "x": 1246,
+          "y": 1665,
+          "hidden": false,
+          "locator": "[data-brailly-visual-id=\"v72\"]",
+          "signature": "14095272",
+          "asset": "https://achladeal.com/_next/image?url=https%3A%2F%2Fphoto.hotellook.com%2Fstatic%2Fcities%2F960x720%2FKRK.jpg&w=384&q=75"
+        },
+        {
+          "candidateId": "v75",
+          "kind": "img",
+          "altStatus": "empty",
+          "sourceAltText": "",
+          "title": "",
+          "caption": "",
+          "accessibleName": "",
+          "nearbyHeading": "",
+          "nearbyText": "",
+          "control": null,
+          "width": 278,
+          "height": 209,
+          "x": 1542,
+          "y": 1665,
+          "hidden": false,
+          "locator": "[data-brailly-visual-id=\"v75\"]",
+          "signature": "23b03d42",
+          "asset": "https://achladeal.com/_next/image?url=https%3A%2F%2Fphoto.hotellook.com%2Fstatic%2Fcities%2F960x720%2FROM.jpg&w=384&q=75"
+        }
+      ],
+      "coverage": {
+        "totalCandidates": 328,
+        "includedCandidates": 12,
+        "inspected": 0,
+        "sourceAlt": 0,
+        "skipped": 0,
+        "uninspected": 12,
+        "hidden": 265,
+        "truncated": true,
+        "domSkipped": false,
+        "blockedRequests": null,
+        "unsupported": [
+          "CSS backgrounds",
+          "iframes",
+          "shadow DOM",
+          "animated images"
+        ]
+      }
+    },
+    {
+      "requestId": "cafacf7e-e2af-464a-9e50-7f71584d07a8",
+      "snapshotId": "78c0b9b8-da65-4599-adeb-5ee750a1a28c",
+      "captureId": "797ebdc3-5b78-4f3c-9278-bb9cb3aeb420",
+      "sequence": 2,
+      "type": "stage-error",
+      "stage": "dom",
+      "message": "Text ranking is unavailable; the source text remains readable."
+    },
+    {
+      "requestId": "cafacf7e-e2af-464a-9e50-7f71584d07a8",
+      "snapshotId": "78c0b9b8-da65-4599-adeb-5ee750a1a28c",
+      "captureId": "797ebdc3-5b78-4f3c-9278-bb9cb3aeb420",
+      "sequence": 3,
+      "type": "stage-error",
+      "stage": "selection",
+      "message": "Visual selection is unavailable; no speculative inspection was started."
+    },
+    {
+      "requestId": "cafacf7e-e2af-464a-9e50-7f71584d07a8",
+      "snapshotId": "78c0b9b8-da65-4599-adeb-5ee750a1a28c",
+      "captureId": "797ebdc3-5b78-4f3c-9278-bb9cb3aeb420",
+      "sequence": 4,
+      "type": "done",
+      "status": "partial",
+      "coverage": {
+        "totalCandidates": 328,
+        "includedCandidates": 12,
+        "inspected": 0,
+        "sourceAlt": 0,
+        "skipped": 0,
+        "uninspected": 12,
+        "hidden": 265,
+        "truncated": true,
+        "domSkipped": false,
+        "blockedRequests": null,
+        "unsupported": [
+          "CSS backgrounds",
+          "iframes",
+          "shadow DOM",
+          "animated images"
+        ]
+      },
+      "metrics": {
+        "totalMs": 6565,
+        "loadMs": 6141,
+        "domMs": 1,
+        "selectionMs": 0,
+        "visionMs": 0,
+        "priorityMs": 0
+      },
+      "sessionClosed": true
+    }
+  ]
+}

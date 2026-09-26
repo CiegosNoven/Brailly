@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-09-26T21:32:41.578Z",
+  "provider": "ElevenLabs",
+  "endpoint": "/v1/text-to-speech/:voice_id/stream",
+  "model": "eleven_multilingual_v2",
+  "characters": 80,
+  "voiceConfigured": true,
+  "outputFormat": "mp3_44100_128",
+  "check": "Actual provider request; bounded MP3 response, header signature and bytes checked. This check does not assess pronunciation or speaker playback.",
+  "httpStatus": 200,
+  "contentType": "audio/mpeg",
+  "status": "passed",
+  "audioBytes": 75695,
+  "sha256": "1be00e95324d426f2983c9a03bed7027d00a6bdfef3a70ea7958aaa1d40ae093",
+  "mp3HeaderVerified": true,
+  "elapsedMs": 6555
+}

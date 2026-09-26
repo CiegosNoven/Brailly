@@ -3,6 +3,8 @@ import { z } from "zod";
 import { parsePage } from "./page.js";
 import { fetchExpandedPage } from "./embedded-page.js";
 import { classifyDom } from "./dom-jev.js";
+import { visualApi, getVisualCapabilities } from "./visual-api.js";
+import { ttsApi, getTtsCapabilities } from "./tts-api.js";
 export const webApi = express.Router();
 webApi.use(express.json({ limit: "200kb" }));
 webApi.use((_req, res, next) => {
@@ -28,7 +30,7 @@ webApi.use((req, res, next) => {
 });
 const windows = new Map<string, { start: number; count: number }>();
 webApi.use((req, res, next) => {
-  if (req.method !== "POST" || !["/page", "/rank"].includes(req.path))
+  if (req.method !== "POST" || !["/page", "/rank", "/visual-capture", "/tts"].includes(req.path))
     return next();
   const id = req.ip || "unknown";
   const now = Date.now();
@@ -47,8 +49,12 @@ webApi.get("/config", (_req, res) =>
   res.json({
     jevConfigured: !!process.env.TYPESAFE_API_KEY,
     model: process.env.TYPESAFE_MODEL || "jev-1.13.0",
+    ...getVisualCapabilities(),
+    elevenlabsTts: getTtsCapabilities(),
   }),
 );
+webApi.use(visualApi);
+webApi.use(ttsApi);
 webApi.post("/page", async (req, res) => {
   const p = z.object({ url: z.url().max(2048) }).safeParse(req.body);
   if (!p.success)
@@ -108,7 +114,7 @@ const input = z
       title: z.string().max(500),
       blocks: z.array(blockSchema).max(60),
       capturedAt: z.string().max(100),
-      source: z.enum(["url", "extension", "example"]),
+      source: z.enum(["url", "extension", "example", "browserbase"]),
       totalCandidates: z.number(),
       truncated: z.boolean(),
     }),

@@ -1,0 +1,333 @@
+{
+  "checkedAt": "2026-09-26T21:39:21.203Z",
+  "url": "https://achladeal.com/en",
+  "task": "Find flights to Madrid under USD 400, with their prices and dates.",
+  "httpStatus": 200,
+  "mime": "application/x-ndjson; charset=utf-8",
+  "finalUrl": "https://achladeal.com/en",
+  "title": "Achla Deal — Flash travel deals: flights, hotels & getaways",
+  "blocks": 60,
+  "sourceSample": [
+    "Skip to content",
+    "Achla Deal",
+    "Categories",
+    "Flights",
+    "Hotels"
+  ],
+  "classification": {
+    "model": "jev-1.13.0",
+    "latencyMs": 415,
+    "blocksScored": 60,
+    "top": [
+      {
+        "id": "b433106085",
+        "category": "CONTENT",
+        "score": 2.85,
+        "confidence": 0.85,
+        "probabilities": {
+          "0": 0.01,
+          "1": 0,
+          "2": 0.12,
+          "3": 0.87
+        },
+        "categoryConfidence": 1,
+        "priority": "NOW",
+        "text": "555₪"
+      },
+      {
+        "id": "b3877354879",
+        "category": "ACTION",
+        "score": 2.08,
+        "confidence": 0.55,
+        "probabilities": {
+          "0": 0.03,
+          "1": 0.13,
+          "2": 0.57,
+          "3": 0.27
+        },
+        "categoryConfidence": 0.99,
+        "priority": "NEXT",
+        "text": "Depart · Return"
+      },
+      {
+        "id": "b1121667779",
+        "category": "CONTENT",
+        "score": 1.97,
+        "confidence": 0.66,
+        "probabilities": {
+          "0": 0.03,
+          "1": 0.14,
+          "2": 0.68,
+          "3": 0.15
+        },
+        "categoryConfidence": 0.97,
+        "priority": "NEXT",
+        "text": "To"
+      },
+      {
+        "id": "b2125207651",
+        "category": "NAVIGATION",
+        "score": 1.82,
+        "confidence": 0.43,
+        "probabilities": {
+          "0": 0.01,
+          "1": 0.36,
+          "2": 0.44,
+          "3": 0.19
+        },
+        "categoryConfidence": 0.39,
+        "priority": "NEXT",
+        "text": "Flights"
+      },
+      {
+        "id": "b3529842571",
+        "category": "ACTION",
+        "score": 1.7,
+        "confidence": 0.42,
+        "probabilities": {
+          "0": 0.03,
+          "1": 0.38,
+          "2": 0.45,
+          "3": 0.14
+        },
+        "categoryConfidence": 0.94,
+        "priority": "NEXT",
+        "text": "Open search"
+      }
+    ]
+  },
+  "decisions": [
+    {
+      "candidateId": "v39",
+      "decision": "UNKNOWN",
+      "confidence": 0.37,
+      "probabilities": {
+        "UNKNOWN": 0.58,
+        "INSPECT": 0.41,
+        "SKIP": 0.01
+      },
+      "reason": "uncertain",
+      "model": "jev-1.13.0"
+    },
+    {
+      "candidateId": "v42",
+      "decision": "UNKNOWN",
+      "confidence": 0.34,
+      "probabilities": {
+        "UNKNOWN": 0.56,
+        "INSPECT": 0.43,
+        "SKIP": 0.01
+      },
+      "reason": "uncertain",
+      "model": "jev-1.13.0"
+    },
+    {
+      "candidateId": "v45",
+      "decision": "UNKNOWN",
+      "confidence": 0.32,
+      "probabilities": {
+        "UNKNOWN": 0.54,
+        "INSPECT": 0.45,
+        "SKIP": 0.01
+      },
+      "reason": "uncertain",
+      "model": "jev-1.13.0"
+    },
+    {
+      "candidateId": "v48",
+      "decision": "UNKNOWN",
+      "confidence": 0.35,
+      "probabilities": {
+        "UNKNOWN": 0.56,
+        "INSPECT": 0.43,
+        "SKIP": 0.01
+      },
+      "reason": "uncertain",
+      "model": "jev-1.13.0"
+    },
+    {
+      "candidateId": "v51",
+      "decision": "UNKNOWN",
+      "confidence": 0.26,
+      "probabilities": {
+        "UNKNOWN": 0.51,
+        "INSPECT": 0.48,
+        "SKIP": 0.01
+      },
+      "reason": "uncertain",
+      "model": "jev-1.13.0"
+    },
+    {
+      "candidateId": "v54",
+      "decision": "UNKNOWN",
+      "confidence": 0.27,
+      "probabilities": {
+        "UNKNOWN": 0.51,
+        "INSPECT": 0.48,
+        "SKIP": 0.01
+      },
+      "reason": "uncertain",
+      "model": "jev-1.13.0"
+    },
+    {
+      "candidateId": "v60",
+      "decision": "INSPECT",
+      "confidence": 0.53,
+      "probabilities": {
+        "UNKNOWN": 0.3,
+        "INSPECT": 0.6900000000000001,
+        "SKIP": 0.01
+      },
+      "reason": "inspect",
+      "model": "jev-1.13.0"
+    },
+    {
+      "candidateId": "v63",
+      "decision": "UNKNOWN",
+      "confidence": 0.39,
+      "probabilities": {
+        "UNKNOWN": 0.59,
+        "INSPECT": 0.4,
+        "SKIP": 0.01
+      },
+      "reason": "uncertain",
+      "model": "jev-1.13.0"
+    },
+    {
+      "candidateId": "v66",
+      "decision": "UNKNOWN",
+      "confidence": 0.28,
+      "probabilities": {
+        "UNKNOWN": 0.52,
+        "INSPECT": 0.47,
+        "SKIP": 0.01
+      },
+      "reason": "uncertain",
+      "model": "jev-1.13.0"
+    },
+    {
+      "candidateId": "v69",
+      "decision": "INSPECT",
+      "confidence": 0.64,
+      "probabilities": {
+        "UNKNOWN": 0.22,
+        "INSPECT": 0.77,
+        "SKIP": 0.01
+      },
+      "reason": "inspect",
+      "model": "jev-1.13.0"
+    },
+    {
+      "candidateId": "v72",
+      "decision": "UNKNOWN",
+      "confidence": 0.32,
+      "probabilities": {
+        "UNKNOWN": 0.55,
+        "INSPECT": 0.44,
+        "SKIP": 0.01
+      },
+      "reason": "uncertain",
+      "model": "jev-1.13.0"
+    },
+    {
+      "candidateId": "v75",
+      "decision": "UNKNOWN",
+      "confidence": 0.27,
+      "probabilities": {
+        "SKIP": 0.01,
+        "INSPECT": 0.47,
+        "UNKNOWN": 0.52
+      },
+      "reason": "uncertain",
+      "model": "jev-1.13.0"
+    }
+  ],
+  "evidence": [
+    {
+      "requestId": "3a18fd87-1b2a-4221-8c05-37c040e3b1a6",
+      "snapshotId": "6a1344fe-f79b-43ef-9f9b-19b13c0c31b1",
+      "captureId": "5494159b-75a0-4003-9048-9f8d76125f49",
+      "candidateId": "v69",
+      "signature": "d5e23a03",
+      "sourceAltText": "",
+      "generatedDescription": "The visible img identified by [data-brailly-visual-id=\"v69\"] displays a photograph of a classical Greek structure with columns and statues, under a clear blue sky. There is an orange '-26%' badge at the top left of the image. Task-relevant details: It appears to be visually representing a flight deal, possibly to Athens, Greece, based on the recognizable landmark. There are no visible indicators of flights to Madrid or any prices/dates relating to Madrid in this image.",
+      "recognizedText": "-26%",
+      "uncertainty": "Uncertainty exists regarding the exact city without explicit labeling, but it visually resembles Athens. No references to Madrid, prices, or dates related to Madrid are observable in this img.",
+      "observedAt": "2026-09-26T21:39:11.873Z",
+      "method": "stagehand-vision",
+      "model": null,
+      "score": 0.02,
+      "confidence": 0.98,
+      "priority": "LATER"
+    },
+    {
+      "requestId": "3a18fd87-1b2a-4221-8c05-37c040e3b1a6",
+      "snapshotId": "6a1344fe-f79b-43ef-9f9b-19b13c0c31b1",
+      "captureId": "5494159b-75a0-4003-9048-9f8d76125f49",
+      "candidateId": "v60",
+      "signature": "f096ead3",
+      "sourceAltText": "",
+      "generatedDescription": "The visible image identified by [data-brailly-visual-id=\"v60\"] shows an ancient Greek or Roman-style structure with several human-shaped columns (caryatids) standing in a row, with a clear blue sky and mountains in the background. This image appears to be used for a flight offer (likely relevant to Athens, Greece), but there is no visible reference to Madrid nor to specific prices or dates for flights to Madrid near this image.",
+      "recognizedText": "-26%\nFlights\nFlight to Athens\nFrom 160₪\nClaim the deal ← 20:20:43",
+      "uncertainty": "Uncertain if this image is relevant to flights to Madrid; it most likely represents Athens. No Madrid flights, prices, or dates are observable near this image.",
+      "observedAt": "2026-09-26T21:39:16.921Z",
+      "method": "stagehand-vision",
+      "model": null,
+      "score": 0.04,
+      "confidence": 0.96,
+      "priority": "LATER"
+    }
+  ],
+  "events": [
+    {
+      "type": "snapshot",
+      "atMs": 6317
+    },
+    {
+      "type": "visual-decisions",
+      "atMs": 6505
+    },
+    {
+      "type": "dom-ranked",
+      "atMs": 6733
+    },
+    {
+      "type": "visual-evidence",
+      "atMs": 15641
+    },
+    {
+      "type": "done",
+      "atMs": 16057
+    }
+  ],
+  "coverage": {
+    "totalCandidates": 328,
+    "includedCandidates": 12,
+    "inspected": 2,
+    "sourceAlt": 0,
+    "skipped": 0,
+    "uninspected": 10,
+    "hidden": 265,
+    "truncated": true,
+    "domSkipped": false,
+    "blockedRequests": null,
+    "unsupported": [
+      "CSS backgrounds",
+      "iframes",
+      "shadow DOM",
+      "animated images"
+    ]
+  },
+  "metrics": {
+    "totalMs": 16032,
+    "loadMs": 6283,
+    "domMs": 423,
+    "selectionMs": 192,
+    "visionMs": 8996,
+    "priorityMs": 137
+  },
+  "status": "partial",
+  "sessionClosed": true,
+  "failures": [],
+  "verification": "Real Browserbase through local HTTP NDJSON route and production client parser. This does not verify streaming on the deployed hosting platform."
+}

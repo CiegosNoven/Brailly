@@ -6,6 +6,8 @@ Brailly reads a website's DOM, asks Jev which blocks matter for your task, and s
 
 ## Run locally
 
+Use Node.js 22.18 or newer within the 22.x release line; the pinned Stagehand SDK requires at least 22.18.
+
 ```sh
 npm install
 cp .env.example .env
@@ -24,6 +26,18 @@ Each Jev request includes the task and up to 60 DOM blocks. A [Score](https://do
 The museum controls change its actual DOM. Jev decides what to do on every run; there are no replacement scores when the service fails. Browser tests use explicit mocks for repeatable checks, while live calls run separately.
 
 [Real-site verification](docs/REAL-SITES.md) covers rendered Achla travel prices, Dayton emergency wait widgets, controlled DOM changes and actual Jev calls. [Devin handoff](docs/DEVIN-PROMPT.md) records the requirements and regression cases.
+
+## Optional visual context and ElevenLabs
+
+Enable `VISUAL_ENRICHMENT_ENABLED=true` with `BROWSERBASE_API_KEY` to show **Open with visual context**. This creates a fresh remote capture: rendered source text and an inventory of images, SVG and canvas come from the same Browserbase session. Jev selects at most two candidates for Stagehand v4 vision and scores the resulting descriptions. **Visual details** identifies generated descriptions, recognized text, uncertainty and source alternative text separately. Opening a detail preserves the current source line and Braille position; results never speak automatically.
+
+Remote navigation is limited to the public demo origins in `server/browserbase.ts` plus the explicit HTTPS origins in `BROWSERBASE_ALLOWED_ORIGINS`. Third-party assets can be blocked by that policy. The endpoint has a 45-second work budget, at most 12 candidates, and closes its session on completion or cancellation. Partial results leave captured text readable. This is one capture, not a page monitor. It does not enrich extension snapshots or authenticated browser sessions. Visual coverage excludes CSS backgrounds, iframes, shadow DOM and animated visual content.
+
+For the reproducible museum scene, deploy `public/visual-demo.html` to an allowed public HTTPS host. Browserbase cannot open the development machine's localhost URL. `public/visual-only.html` covers pages with a diagram and no source text blocks. The existing **Museum demo** keeps its DOM mutation, interruption and resume workflow. See [the walkthrough](docs/DEMO.md) and [verification scope](docs/VERIFICATION.md) before presenting the integrations.
+
+Enable `ELEVENLABS_TTS_ENABLED=true` with `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID`, then select **ElevenLabs** under **Voice provider**. **Listen** reads the selected source block; a visual detail has separate Listen controls for the generated description and text recognized in the image. Stop works while audio is loading. A failure offers **Use browser voice**, and autoplay restrictions offer **Play audio**. The client waits for a bounded MP3 response before playback; it does not play progressively streamed chunks. No microphone or conversational agent is involved.
+
+The flags default off independently. Both endpoints enforce their flags; keys and configured voice remain server-side. Configure provider/deployment usage quotas before exposing the paid endpoints publicly: per-process throttling is not a global serverless quota.
 
 ## Chrome extension
 
@@ -48,6 +62,6 @@ npm run test:e2e
 npm run build
 ```
 
-The build also packages the extension. `scripts/check-live.ts` checks a real Jev request with the server key. [Judging evidence](docs/JUDGING.md) separates verified behavior from work that still needs device testing.
+The build also packages the extension. `scripts/check-live.ts` checks a real Jev request with the server key. `npx tsx scripts/verify-elevenlabs.ts` performs an opt-in live TTS smoke test; `npx tsx scripts/verify-visual-real.ts fixture-jev` exercises Browserbase, Jev and vision on the controlled fixture. Results are recorded under `artifacts/`, separately from mocked regression tests. [Judging evidence](docs/JUDGING.md) separates verified behavior from work that still needs device testing.
 
 The main implementation lives in `shared/dom.ts`, `server/dom-jev.ts`, `server/page.ts`, `src/App.tsx` and `extension/`. URL fetching rejects private network destinations; the preview strips source scripts and runs its capture bridge in a sandbox. Capture limits are 60 blocks and 800 characters per block, with truncation reported in the snapshot. A DOM snapshot isn't a browser accessibility tree.

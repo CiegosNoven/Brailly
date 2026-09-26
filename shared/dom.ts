@@ -1,5 +1,5 @@
 export type DomBlock={id:string;tag:string;role:string;region:string;text:string;href?:string;context?:string;live?:'timer';order:number};
-export type PageSnapshot={id:string;url:string;title:string;blocks:DomBlock[];capturedAt:string;source:'url'|'extension'|'example';totalCandidates:number;truncated:boolean;previewHtml?:string};
+export type PageSnapshot={id:string;url:string;title:string;blocks:DomBlock[];capturedAt:string;source:'url'|'extension'|'example'|'browserbase';totalCandidates:number;truncated:boolean;previewHtml?:string};
 // Self-contained so the browser extension can inject the same extractor.
 export function extractDocument(doc:Document,url:string,rendered=false,selectedId?:string):PageSnapshot {
  const semantic='h1,h2,h3,h4,h5,h6,p,li,a,button,label,input,select,textarea,td,th,summary,[role="alert"],[role="status"],[role="button"],[role="heading"],[role="timer"]';
