@@ -1,4 +1,4 @@
-export type Policy = 'Reflow' | 'Immediate' | 'Freeze';
+export type Policy = 'Braily' | 'Immediate' | 'Freeze';
 export type Disposition = 'DEFER' | 'QUEUE_HIGH' | 'INTERRUPT' | 'NONE';
 export type BlockId = 'baggage' | 'gate' | 'security' | 'weather';
 export type Block = {id: BlockId; label:string; text:string; revision:number};
@@ -16,7 +16,7 @@ export function initialState():State {
  gate:{id:'gate',label:'Your departure',text:'Flight UA 245 · Gate F18 · Boarding at 14:20 · San Francisco to New York.',revision:1},
  security:{id:'security',label:'Security & access',text:'Checkpoint A is open. Follow signs for F gates after security.',revision:1},
  weather:{id:'weather',label:'Local weather',text:'San Francisco · 68°F · Clear skies.',revision:1}};
- return {version:1,blocks,snapshot:{version:1,blocks:structuredClone(blocks),blockId:'baggage',offset:0},saved:null,active:null,noticeOffset:0,policy:'Reflow',task:'before',taskEpoch:0,policyEpoch:0,lease:1,events:[],traces:[],updates:0,interruptions:0,resumes:0,exactResumes:0,rewrites:0,stale:0,phase:'Ready when you are'};
+ return {version:1,blocks,snapshot:{version:1,blocks:structuredClone(blocks),blockId:'baggage',offset:0},saved:null,active:null,noticeOffset:0,policy:'Braily',task:'before',taskEpoch:0,policyEpoch:0,lease:1,events:[],traces:[],updates:0,interruptions:0,resumes:0,exactResumes:0,rewrites:0,stale:0,phase:'Ready when you are'};
 }
 export function visibleText(s:State,width=40) { const text=s.active?.text??s.snapshot.blocks[s.snapshot.blockId].text; return Array.from(text).slice(s.active?s.noticeOffset:s.snapshot.offset,(s.active?s.noticeOffset:s.snapshot.offset)+width).join(''); }
 export function isHistorical(s:State) { return s.snapshot.blocks[s.snapshot.blockId].revision!==s.blocks[s.snapshot.blockId].revision; }

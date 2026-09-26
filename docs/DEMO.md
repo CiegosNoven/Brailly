@@ -1,4 +1,4 @@
-# A short Reflow demo
+# A short Braily demo
 
 Open the local app and choose **Play the demo**. Fixture mode works without an API key or Braille display.
 
@@ -11,6 +11,6 @@ Open the local app and choose **Play the demo**. Fixture mode works without an A
 
 Optional: Settings → delay decision, trigger a security notice, then change task. Show **Stale · dropped** and find the original event under **Pending updates**.
 
-Close: “Reflow explores which updates deserve to interrupt touch. This demonstration validates scheduler behavior, while tactile use and real-device behavior still need testing.”
+Close: “Braily explores which updates deserve to interrupt touch. This demonstration validates scheduler behavior, while tactile use and real-device behavior still need testing.”
 
 The ~15-second automated run can be paused and reset. Export the trace to preserve what actually happened. A live key, physical device, hackathon submission, and user validation are separate from the offline demonstration.

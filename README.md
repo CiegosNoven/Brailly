@@ -1,6 +1,6 @@
-# Reflow · Web to Braille
+# Braily · Web to Braille
 
-Open a website, tell Reflow what you need, and let Jev classify the actual DOM into a reading order. Read exact source text with a screen reader, voice, or the simulated Braille display.
+Open a website, tell Braily what you need, and let Jev classify the actual DOM into a reading order. Read exact source text with a screen reader, voice, or the simulated Braille display.
 
 **Live demo:** https://reflow-jev.vercel.app
 
@@ -17,7 +17,7 @@ The demo accepts public website URLs and includes a sample museum website. URL i
 
 ## Extension
 
-Download `reflow-extension.zip` from the deployed site, unzip it, and use Chrome → Extensions → Developer mode → Load unpacked. Click Reflow on the website you want to read. It uses active-tab access and opens a side panel. Passwords and input values are excluded; page text is sent to the classifier when requested. It captures the main frame, not cross-origin frames or closed shadow roots.
+Download `braily-extension.zip` from the deployed site, unzip it, and use Chrome → Extensions → Developer mode → Load unpacked. Click Braily on the website you want to read. It uses active-tab access and opens a side panel. Passwords and input values are excluded; page text is sent to the classifier when requested. It captures the main frame, not cross-origin frames or closed shadow roots.
 
 ## Hardware and accessible output
 
