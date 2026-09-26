@@ -11,3 +11,7 @@ __pycache__/
 
 extension-dist/
 .vercel/
+
+!.env.example
+
+*.tsbuildinfo

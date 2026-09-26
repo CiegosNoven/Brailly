@@ -1,31 +1,43 @@
-# Reflow · Web to Braille
+# Brailly
 
-Open a website, tell Reflow what you need, and let Jev classify the actual DOM into a reading order. Read exact source text with a screen reader, voice, or the simulated Braille display.
+Brailly reads a website's DOM, asks Jev which blocks matter for your task, and sends the original text to a stable reading output. The screen shows the webpage beside Jev's scores, API usage and a Braille device preview.
 
-**Live demo:** https://reflow-jev.vercel.app
+[Open Brailly](https://brailly-jev.vercel.app) · [Demo walkthrough](docs/DEMO.md) · [Device connections](docs/HARDWARE.md)
 
-## Run
+## Run locally
 
 ```sh
 npm install
 cp .env.example .env
-# Set TYPESAFE_API_KEY in .env (server only).
+# Set TYPESAFE_API_KEY in .env.
 npm run dev
 ```
 
-The demo accepts public website URLs and includes a sample museum website. URL imports are sanitized HTML snapshots; use the Chrome extension for a live rendered DOM. Each captured block gets a real Jev Score (0–3 relevance) and Choice (content, action, navigation, notice or extra). No generated summaries or fabricated AI scores are substituted when the service fails.
+Open `http://127.0.0.1:5173`. The key stays on the server.
 
-## Extension
+## What works
 
-Download `reflow-extension.zip` from the deployed site, unzip it, and use Chrome → Extensions → Developer mode → Load unpacked. Click Reflow on the website you want to read. It uses active-tab access and opens a side panel. Passwords and input values are excluded; page text is sent to the classifier when requested. It captures the main frame, not cross-origin frames or closed shadow roots.
+Paste a public URL or open the museum example. Brailly imports sanitized HTML into an interactive iframe; links load the next page. For sites that require JavaScript or a login, the Chrome extension captures the page already rendered in your browser.
 
-## Hardware and accessible output
+Each Jev request includes the task and up to 60 DOM blocks. A [Score](https://docs.typesafe.ai/primitives/score) assigns relevance from 0 to 3; a [Choice](https://docs.typesafe.ai/primitives/advanced) labels each block. On iframe changes, another Choice decides whether to hold the current line, queue an update or interrupt. Resume restores the saved reading position. The interface shows the endpoint, model, latency and input/output token counts reported by Jev.
 
-The screen shows a labeled 20/40/80-cell visual simulator. Keyboard controls, exact source text, polite screen-reader output and browser speech work without seeing the walkthrough. The visual dot table is illustrative English, not a certified translation engine.
+The museum controls change its actual DOM. Jev decides what to do on every run; there are no replacement scores when the service fails. Browser tests use explicit mocks for repeatable checks, while live calls run separately.
 
-A real supported display connects through VoiceOver or NVDA; the screen reader owns Braille translation and routing. `hardware/brltty_bridge.py` is an optional local BRLTTY adapter. Vercel cannot access a visitor's USB hardware. No physical hardware validation is claimed.
+## Chrome extension
 
-## Validate and build
+Download [brailly-extension.zip](https://brailly-jev.vercel.app/brailly-extension.zip), unzip it, then open `chrome://extensions`. Enable Developer mode and choose **Load unpacked**. Select the extracted folder, open a website and click Brailly's toolbar icon.
+
+The extension uses `activeTab` permission and opens a side panel. Choose **Capture tab** to refresh its snapshot after a source change, then classify it. Unlike the iframe demo, the extension currently flags mutations and waits for recapture; it doesn't automatically send changing page text to Jev.
+
+Extraction excludes password fields and input values. It captures the main document, so cross-origin frames and closed shadow roots remain outside the snapshot. The extension is an unpacked build, not a Chrome Web Store release.
+
+## Braille output
+
+Select a named display profile to preview its cell width. The controls pan the dots and move between source blocks. For an actual display, focus the reading output through a supported screen reader; VoiceOver or NVDA handles translation and hardware routing.
+
+No physical device was available for testing. The visual English dot mapping is illustrative, and the optional local BRLTTY adapter isn't wired into the current reader interface. See [hardware details](docs/HARDWARE.md).
+
+## Checks and build
 
 ```sh
 npm test
@@ -34,18 +46,6 @@ npm run test:e2e
 npm run build
 ```
 
-`npm run build` also packages the Chrome extension. Browser tests clearly use test-only model mocks to exercise deterministic UI behavior; actual Jev calls are verified separately with `scripts/check-live.ts` and never inferred from mock tests.
+The build also packages the extension. `scripts/check-live.ts` checks a real Jev request with the server key. [Judging evidence](docs/JUDGING.md) separates verified behavior from work that still needs device testing.
 
-## Implementation
-
-- `shared/dom.ts`: bounded semantic DOM extraction and reading order.
-- `server/page.ts`: public URL fetch, network-address checks, sanitized preview.
-- `server/dom-jev.ts`: structured Score and Choice questions, response validation.
-- `server/web-api.ts`, `api/index.ts`: server-only credentials and Vercel API.
-- `src/App.tsx`: explorer, result inspection, accessible output and simulator.
-- `extension/`: active-tab capture and Chrome side panel.
-- `src/runtime.ts`: earlier ReadLease scheduler invariants retained for integration.
-
-The prototype captures up to 60 blocks and 800 characters per block, and reports truncation. Server HTML is not the same as the browser accessibility tree. The supplied masterplan was prior planning material; this repository does not claim hackathon eligibility, CodeRabbit review, event submission, physical device testing, or user-validation results.
-
-References: [Jev Score](https://docs.typesafe.ai/primitives/score), [structured questions](https://docs.typesafe.ai/primitives/advanced), [Chrome activeTab](https://developer.chrome.com/docs/extensions/develop/concepts/activeTab), [VoiceOver Braille](https://support.apple.com/en-au/guide/voiceover/cpvoubradisplays/mac).
+The main implementation lives in `shared/dom.ts`, `server/dom-jev.ts`, `server/page.ts`, `src/App.tsx` and `extension/`. URL fetching rejects private network destinations; the preview strips source scripts and runs its capture bridge in a sandbox. Capture limits are 60 blocks and 800 characters per block, with truncation reported in the snapshot. A DOM snapshot isn't a browser accessibility tree.

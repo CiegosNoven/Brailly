@@ -14,7 +14,7 @@ export async function fetchPublicHtml(raw:string,depth=0):Promise<{html:string;u
  const hostname=url.hostname.replace(/^\[|\]$/g,'');const addresses=await lookup(hostname,{all:true});if(!addresses.length||addresses.some(a=>!publicAddress(a.address)))throw new Error('Only public websites can be imported.');
  const pinned=addresses.find(a=>a.family===4)||addresses[0];
  return new Promise((resolve,reject)=>{
-  const req=(url.protocol==='https:'?https:http).get(url,{headers:{'User-Agent':'Reflow/0.2 (accessible page preview)','Accept':'text/html,application/xhtml+xml','Accept-Encoding':'identity'},lookup:((_host:unknown,opts:{all?:boolean},cb:Function)=>opts.all?cb(null,[pinned]):cb(null,pinned.address,pinned.family)) as never},res=>{
+  const req=(url.protocol==='https:'?https:http).get(url,{headers:{'User-Agent':'Brailly/0.3 (accessible page preview)','Accept':'text/html,application/xhtml+xml','Accept-Encoding':'identity'},lookup:((_host:unknown,opts:{all?:boolean},cb:Function)=>opts.all?cb(null,[pinned]):cb(null,pinned.address,pinned.family)) as never},res=>{
    if(res.statusCode&&res.statusCode>=300&&res.statusCode<400&&res.headers.location){res.resume();clearTimeout(deadline);fetchPublicHtml(new URL(res.headers.location,url).href,depth+1).then(resolve,reject);return;}
    if(res.statusCode!==200){res.resume();reject(new Error(`The website returned HTTP ${res.statusCode}. Use the extension to capture it in your browser.`));return;}
    if(!/text\/html|application\/xhtml\+xml/i.test(res.headers['content-type']||'')){res.resume();reject(new Error('This URL does not return an HTML page.'));return;}
@@ -23,13 +23,19 @@ export async function fetchPublicHtml(raw:string,depth=0):Promise<{html:string;u
  });
 }
 export function parsePage(html:string,url:string){
- const {document}=parseHTML(html);const page=extractDocument(document as unknown as Document,url);
+ const {document}=parseHTML(html);let baseUrl=url;
+ try{const base=new URL(document.querySelector('base[href]')?.getAttribute('href')||url,url);if(['http:','https:'].includes(base.protocol))baseUrl=base.href;}catch{}
+ const page=extractDocument(document as unknown as Document,url);
+ const resolveCss=(css:string)=>css.replace(/url\(\s*(['"]?)([^)'"]+)\1\s*\)/gi,(original,_quote,value)=>{try{const resolved=new URL(value.trim(),baseUrl);return ['http:','https:','data:'].includes(resolved.protocol)?`url("${resolved.href.replace(/"/g,'%22')}")`:'none';}catch{return original;}});
  // Snapshot only. Never execute third-party code or preserve form values.
  document.querySelectorAll('script,iframe,frame,object,embed,base,meta[http-equiv],link[rel="preload"],link[rel="modulepreload"],noscript').forEach(n=>n.remove());
  document.querySelectorAll('*').forEach(n=>{for(const attr of Array.from(n.attributes)){const name=attr.name.toLowerCase();if(name.startsWith('on')||['srcdoc','integrity','nonce','action','formaction','value','srcset','ping'].includes(name))n.removeAttribute(attr.name);}
   if(n.tagName==='TEXTAREA')n.textContent='';
-  for(const attr of ['src','href','poster']){const value=n.getAttribute(attr);if(!value)continue;try{const resolved=new URL(value,url);if(!['http:','https:'].includes(resolved.protocol))n.removeAttribute(attr);else n.setAttribute(attr,resolved.href);}catch{n.removeAttribute(attr);}}
-  if(n.tagName==='A'){if(n.getAttribute('href'))n.setAttribute('data-reflow-href',n.getAttribute('href')!);n.removeAttribute('href');}
+  if(n.tagName==='STYLE')n.textContent=resolveCss(n.textContent||'');
+  if(n.hasAttribute('style'))n.setAttribute('style',resolveCss(n.getAttribute('style')!));
+  if(n.tagName==='IMG'&&!n.getAttribute('src')&&n.getAttribute('data-src'))n.setAttribute('src',n.getAttribute('data-src')!);
+  for(const attr of ['src','href','poster']){const value=n.getAttribute(attr);if(!value)continue;try{const resolved=new URL(value,baseUrl);if(!['http:','https:'].includes(resolved.protocol))n.removeAttribute(attr);else n.setAttribute(attr,resolved.href);}catch{n.removeAttribute(attr);}}
+  if(n.tagName==='A'){if(n.getAttribute('href')){n.setAttribute('data-reflow-href',n.getAttribute('href')!);n.setAttribute('href','#');}else n.removeAttribute('href');}
   if(['INPUT','BUTTON','SELECT','TEXTAREA'].includes(n.tagName))n.setAttribute('disabled','');
  });
  const csp=document.createElement('meta');csp.setAttribute('http-equiv','Content-Security-Policy');csp.setAttribute('content',"default-src 'none'; style-src 'unsafe-inline' https:; img-src https: data:; font-src https: data:; script-src 'none'; connect-src 'none'; form-action 'none'; base-uri 'none'");document.head.prepend(csp);
