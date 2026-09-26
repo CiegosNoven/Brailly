@@ -36,6 +36,7 @@ import { toBraille } from "./braille";
 import { frameDocument } from "./frame";
 import BrailleDevice from "./BrailleDevice";
 import ReadingQueue from "./ReadingQueue";
+import ChangeDemo, { ELEVATOR_SITE } from "./ChangeDemo";
 import {
   snapshotSignature,
   sourceChanges,
@@ -86,6 +87,8 @@ export default function App() {
   const auto = true;
   const [playing, setPlaying] = useState(false);
   const demoRun = useRef(0);
+  const alertAutoplay = useRef(false);
+  const alertTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [timeline, setTimeline] = useState<
     {
       id: string;
@@ -144,10 +147,13 @@ export default function App() {
       abort.current?.abort();
       loadAbort.current?.abort();
       if (updateTimer.current) clearTimeout(updateTimer.current);
+      if (alertTimer.current) clearTimeout(alertTimer.current);
       speechSynthesis?.cancel();
     };
   }, []);
   function acceptPage(p: PageSnapshot) {
+    alertAutoplay.current = false;
+    if (alertTimer.current) clearTimeout(alertTimer.current);
     sourceSession.current++;
     refreshingPreview.current = null;
     setRefreshing(false);
@@ -299,7 +305,7 @@ export default function App() {
       const local = new URL(raw, location.origin);
       if (
         local.origin === (API || location.origin) &&
-        ["/example.html", "/museum-tickets.html"].includes(local.pathname)
+        ["/example.html", "/museum-tickets.html", "/access-demo.html"].includes(local.pathname)
       ) {
         void loadExample(local.pathname, !!nextUrl && auto);
         return;
@@ -691,6 +697,30 @@ export default function App() {
         "*",
       );
   }
+  const accessDemo = !!page && new URL(page.url).pathname === '/access-demo.html' && page.source === 'example';
+  async function startAlertDemo() {
+    updateTask('I am about to use the street elevator at Harbor station to reach the platform without stairs. Alert me immediately if this route becomes inaccessible. Ignore shop offers.');
+    setTimeline([]);
+    setActiveTab('read');
+    const loaded = await loadExample('/access-demo.html', true);
+    if (loaded) alertAutoplay.current = true;
+  }
+  function openElevatorSite() {
+    updateTask('Read the current published elevator accessibility status for each Muni station. Keep station names, status and timestamps together.');
+    setActiveTab('analyze');
+    void loadUrl(ELEVATOR_SITE);
+  }
+  useEffect(() => {
+    if (!accessDemo || !alertAutoplay.current || busy || !frameReady || result?.snapshotId !== page?.id) return;
+    const route = page.blocks.find(block => block.text.startsWith('Street elevator in service.'));
+    if (!route) return;
+    alertAutoplay.current = false;
+    readBlock(route);
+    const source = sourceSession.current;
+    alertTimer.current = setTimeout(() => {
+      if (source === sourceSession.current) sendUpdate('elevator');
+    }, 1400);
+  }, [accessDemo, busy, frameReady, result, page]);
   frameHandler.current = (event: MessageEvent) => {
     if (
       !frame ||
@@ -875,7 +905,10 @@ export default function App() {
         </button>
       </header>
       <main>
-        <h1 className="page-title">Read the web in Braille.</h1>
+        <div className="page-heading">
+          <h1 className="page-title">Read the web in Braille.</h1>
+          {!extension && <button className="alert-demo-button" disabled={!!busy} onClick={() => void startAlertDemo()}><Play size={20}/>Play alert demo</button>}
+        </div>
         {error && (
           <div className="error" role="alert">
             <span>{error}</span>
@@ -923,7 +956,7 @@ export default function App() {
             </button>
           ))}
         </div>
-        <div className="tab-workspace">
+        <div className={`tab-workspace${accessDemo && activeTab === 'read' ? ' alert-workspace' : ''}`}>
           <div className="tab-content">
             <section
               className="analysis-tab"
@@ -1081,6 +1114,7 @@ export default function App() {
                   <button disabled={!!busy} onClick={() => void loadExample()}>
                     Museum demo
                   </button>
+                  <button disabled={!!busy} onClick={openElevatorSite}>Muni elevators</button>
                   <button
                     disabled={!!busy}
                     onClick={() => {
@@ -1150,7 +1184,7 @@ export default function App() {
                       </div>
                     )}
                   </div>
-                  {page?.source === "example" && (
+                  {page?.source === "example" && !accessDemo && (
                     <details className="demo-controls">
                       <summary>Test page changes</summary>
                       <div className="live-controls">
@@ -1347,7 +1381,15 @@ export default function App() {
               </section>
             </section>
           </div>
-          <ReadingQueue
+          {accessDemo && activeTab === 'read' ? <ChangeDemo
+            after={page?.blocks.find(block => block.text.startsWith('Street elevator '))?.text}
+            busy={!!busy || !!pendingUpdate.current}
+            decision={timeline[0]}
+            error={error}
+            canResume={!!saved}
+            onReplay={() => void startAlertDemo()}
+            onRealSite={openElevatorSite}
+          /> : <ReadingQueue
             blocks={ordered}
             results={result?.snapshotId === page?.id ? result : null}
             currentId={current?.id}
@@ -1358,7 +1400,7 @@ export default function App() {
               readBlock(block);
               setActiveTab("read");
             }}
-          />
+          />}
         </div>
         <div className="live-status sr-only" role="status" aria-live="polite">
           {status}
