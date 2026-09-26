@@ -35,6 +35,7 @@ import {
 import { toBraille } from "./braille";
 import { frameDocument } from "./frame";
 import BrailleDevice from "./BrailleDevice";
+import BrailleField from "./BrailleField";
 const extension = typeof chrome !== "undefined" && !!chrome.runtime?.id;
 const API = extension ? "https://brailly-jev.vercel.app" : "";
 const categoryLabel = {
@@ -112,6 +113,8 @@ export default function App() {
     epoch.current++;
     abort.current?.abort();
     setPage(p);
+    // The extension's URL field is read-only; show the captured page so Read page is enabled.
+    if (extension) setUrl(p.url);
     setResult(null);
     setFrameReady(false);
     setSelected(p.blocks[0]?.id || "");
@@ -587,7 +590,15 @@ export default function App() {
         </button>
       </header>
       <main>
-        <h1 className="page-title">Read the web in Braille.</h1>
+        <section className="hero" aria-labelledby="page-title">
+          <BrailleField message="brailly · the web, within reach · jev decides what matters" />
+          <div className="hero-copy">
+            <p className="eyebrow">Brailly · Jev System One · Score + Choice</p>
+            <h1 className="page-title" id="page-title">
+              Read the web in Braille.
+            </h1>
+          </div>
+        </section>
         {error && (
           <div className="error" role="alert">
             <span>{error}</span>
@@ -682,7 +693,7 @@ export default function App() {
                 <button onClick={exportTrace} disabled={!result}>
                   <Download size={18} /> Export result
                 </button>
-                <pre>
+                <pre tabIndex={0} aria-label="Jev request and response">
                   {JSON.stringify(
                     result
                       ? {
