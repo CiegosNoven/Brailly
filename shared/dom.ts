@@ -4,11 +4,11 @@ export type PageSnapshot={id:string;url:string;title:string;blocks:DomBlock[];ca
 export function extractDocument(doc:Document,url:string,rendered=false,selectedId?:string):PageSnapshot {
  let baseUrl=url;try{const base=new URL(doc.querySelector('base[href]')?.getAttribute('href')||url,url);if(['http:','https:'].includes(base.protocol))baseUrl=base.href;}catch{}
  const selector='h1,h2,h3,h4,h5,h6,p,li,a,button,label,input,select,textarea,td,th,summary,[role="alert"],[role="status"],[role="button"],[role="heading"]';
- const candidates=Array.from(doc.querySelectorAll<HTMLElement>(selector));const collected:DomBlock[]=[];const ids=new Set<string>();let nextId=candidates.reduce((highest,n)=>Math.max(highest,Number(n.getAttribute('data-reflow-id')?.slice(1))||0),0)+1;
+ const candidates=Array.from(doc.querySelectorAll<HTMLElement>(selector));const collected:DomBlock[]=[];const ids=new Set<string>();let nextId=candidates.reduce((highest,n)=>Math.max(highest,Number(n.getAttribute('data-brailly-id')?.slice(1))||0),0)+1;
  const visibility=new Map<HTMLElement,boolean>();
  const hidden=(node:HTMLElement)=>{for(let n:HTMLElement|null=node;n;n=n.parentElement){if(n.hidden||n.hasAttribute('inert')||n.getAttribute('aria-hidden')==='true'||/display\s*:\s*none|visibility\s*:\s*hidden/i.test(n.getAttribute('style')||''))return true;if(rendered&&doc.defaultView){let value=visibility.get(n);if(value===undefined){const style=doc.defaultView.getComputedStyle(n);value=style.display==='none'||style.visibility==='hidden';visibility.set(n,value);}if(value)return true;}}return false;};
  for(const node of candidates){
-  if(node.closest('script,style,noscript,template,svg,[data-reflow-ui]')||hidden(node))continue;
+  if(node.closest('script,style,noscript,template,svg,[data-brailly-ui]')||hidden(node))continue;
   const tag=node.tagName.toLowerCase();if(tag==='input'&&['hidden','password'].includes(node.getAttribute('type')||''))continue;
   const child=node.querySelector('h1,h2,h3,h4,h5,h6,p,li,td,th,summary');if(child&&!/^h[1-6]$/.test(tag)&&!['a','button','label','summary'].includes(tag))continue;
   if(node.children.length===1&&node.firstElementChild?.matches('a')&&node.textContent?.trim()===node.firstElementChild.textContent?.trim())continue;
@@ -19,9 +19,9 @@ export function extractDocument(doc:Document,url:string,rendered=false,selectedI
   const raw=labelled||node.getAttribute('aria-label')||(['input','textarea'].includes(tag)?inputLabel||node.getAttribute('placeholder')||node.getAttribute('name'):copy.textContent)||'';
   const text=raw.replace(/\s+/g,' ').trim();if(!text)continue;
   const landmark=node.closest('nav,main,aside,header,footer,[role="navigation"],[role="main"],[role="complementary"],[role="banner"],[role="contentinfo"]');
-  const region=landmark?.getAttribute('role')||landmark?.tagName.toLowerCase()||'body';let id=node.getAttribute('data-reflow-id')||'';if(!/^b\d+$/.test(id)||ids.has(id))id=`b${nextId++}`;ids.add(id);node.setAttribute('data-reflow-id',id);
+  const region=landmark?.getAttribute('role')||landmark?.tagName.toLowerCase()||'body';let id=node.getAttribute('data-brailly-id')||'';if(!/^b\d+$/.test(id)||ids.has(id))id=`b${nextId++}`;ids.add(id);node.setAttribute('data-brailly-id',id);
   const block:DomBlock={id,tag,role:(node.getAttribute('role')||(/^h[1-6]$/.test(tag)?'heading':tag==='a'?'link':['button','input','select','textarea'].includes(tag)?'control':'text')).slice(0,40),region:region.slice(0,40),text:text.slice(0,800),order:collected.length};
-  if(tag==='a'){try{const href=new URL(node.getAttribute('data-reflow-href')||node.getAttribute('href')||'',baseUrl);if(['https:','http:'].includes(href.protocol)&&href.href.length<=2048)block.href=href.href;}catch{/* invalid source link */}}
+  if(tag==='a'){try{const href=new URL(node.getAttribute('data-brailly-href')||node.getAttribute('href')||'',baseUrl);if(['https:','http:'].includes(href.protocol)&&href.href.length<=2048)block.href=href.href;}catch{/* invalid source link */}}
   collected.push(block);
  }
  const isContent=(block:DomBlock)=>!['nav','navigation','header','banner','footer','contentinfo','aside','complementary'].includes(block.region);

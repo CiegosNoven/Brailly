@@ -1,0 +1,80 @@
+{
+  "base": "https://brailly-jev.vercel.app",
+  "at": "2026-09-26T20:49:29.730Z",
+  "checks": [
+    {
+      "action": "Read page",
+      "status": 200,
+      "model": "jev-1.13.0",
+      "latencyMs": 309,
+      "usage": {
+        "input_tokens": 12359,
+        "output_tokens": 1767
+      },
+      "blocks": 24
+    },
+    {
+      "action": "Change offer",
+      "status": 200,
+      "model": "jev-1.13.0",
+      "latencyMs": 315,
+      "usage": {
+        "input_tokens": 14260,
+        "output_tokens": 1815
+      },
+      "transition": {
+        "type": "choice",
+        "choice": "DEFER",
+        "confidence": 0.42,
+        "probabilities": {
+          "QUEUE_HIGH": 0.19,
+          "NONE": 0.06,
+          "DEFER": 0.5599999999999999,
+          "INTERRUPT": 0.19
+        }
+      },
+      "blocks": 24
+    },
+    {
+      "action": "Close entrance",
+      "status": 200,
+      "model": "jev-1.13.0",
+      "latencyMs": 297,
+      "usage": {
+        "input_tokens": 14266,
+        "output_tokens": 1816
+      },
+      "transition": {
+        "type": "choice",
+        "choice": "INTERRUPT",
+        "confidence": 0.66,
+        "probabilities": {
+          "INTERRUPT": 0.74,
+          "NONE": 0.02,
+          "DEFER": 0.08,
+          "QUEUE_HIGH": 0.16
+        }
+      },
+      "blocks": 24
+    },
+    {
+      "resumeVerified": true,
+      "retained": "Open Tuesday–Sunday, 10 am–6 pm. Closed "
+    },
+    {
+      "action": "Wikipedia",
+      "status": 200,
+      "model": "jev-1.13.0",
+      "latencyMs": 388,
+      "usage": {
+        "input_tokens": 30740,
+        "output_tokens": 4581
+      },
+      "blocks": 60
+    },
+    {
+      "realWebsite": "https://en.wikipedia.org/wiki/Braille"
+    }
+  ],
+  "errors": []
+}

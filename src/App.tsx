@@ -566,7 +566,7 @@ export default function App() {
     else await loadUrl(url);
   }
   return (
-    <div className={extension ? "reflow extension-app" : "reflow"}>
+    <div className={extension ? "brailly extension-app" : "brailly"}>
       <a className="skip" href="#reading-output">
         Skip to reading output
       </a>

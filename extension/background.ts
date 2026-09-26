@@ -48,7 +48,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
         target: { tabId: value.sourceTabId },
         func: (id: string, text: string) => {
           if (!/^b\d+$/.test(id)) return;
-          const node = document.querySelector<HTMLElement>(`[data-reflow-id="${id}"]`);
+          const node = document.querySelector<HTMLElement>(`[data-brailly-id="${id}"]`);
           if (!node) return;
           const source = (node.getAttribute('aria-label') || node.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 800);
           if (source !== text) return;

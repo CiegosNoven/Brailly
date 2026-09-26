@@ -35,11 +35,11 @@ export function parsePage(html:string,url:string){
   if(n.hasAttribute('style'))n.setAttribute('style',resolveCss(n.getAttribute('style')!));
   if(n.tagName==='IMG'&&!n.getAttribute('src')&&n.getAttribute('data-src'))n.setAttribute('src',n.getAttribute('data-src')!);
   for(const attr of ['src','href','poster']){const value=n.getAttribute(attr);if(!value)continue;try{const resolved=new URL(value,baseUrl);if(!['http:','https:'].includes(resolved.protocol))n.removeAttribute(attr);else n.setAttribute(attr,resolved.href);}catch{n.removeAttribute(attr);}}
-  if(n.tagName==='A'){if(n.getAttribute('href')){n.setAttribute('data-reflow-href',n.getAttribute('href')!);n.setAttribute('href','#');}else n.removeAttribute('href');}
+  if(n.tagName==='A'){if(n.getAttribute('href')){n.setAttribute('data-brailly-href',n.getAttribute('href')!);n.setAttribute('href','#');}else n.removeAttribute('href');}
   if(['INPUT','BUTTON','SELECT','TEXTAREA'].includes(n.tagName))n.setAttribute('disabled','');
  });
  const csp=document.createElement('meta');csp.setAttribute('http-equiv','Content-Security-Policy');csp.setAttribute('content',"default-src 'none'; style-src 'unsafe-inline' https:; img-src https: data:; font-src https: data:; script-src 'none'; connect-src 'none'; form-action 'none'; base-uri 'none'");document.head.prepend(csp);
- const style=document.createElement('style');style.textContent='html{scroll-behavior:auto!important}body{min-width:0!important}[data-reflow-id]{transition:background .2s}';document.head.append(style);
+ const style=document.createElement('style');style.textContent='html{scroll-behavior:auto!important}body{min-width:0!important}[data-brailly-id]{transition:background .2s}';document.head.append(style);
  page.previewHtml='<!doctype html>'+document.documentElement.outerHTML;
  return page;
 }

@@ -477,7 +477,7 @@
   outline: 3px solid #b8cf85;
   outline-offset: 3px;
 }
-@container (max-width: 720px) {
+@container (max-width: 1000px) {
   .hw-toolbar {
     flex-wrap: wrap;
     padding: 12px 16px;
@@ -539,7 +539,7 @@
     transition: none;
   }
 }
-@container (max-width: 720px) {
+@container (max-width: 1000px) {
   .hw-device,
   .hw-device.hw-size-20 {
     min-width: 0;
@@ -672,7 +672,7 @@
     right: 6px;
   }
 }
-@container (min-width: 480px) and (max-width: 720px) {
+@container (min-width: 480px) and (max-width: 1000px) {
   .hw-toolbar {
     flex-wrap: nowrap;
     gap: 18px;
