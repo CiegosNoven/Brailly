@@ -20,8 +20,8 @@ This path uses BRLTTY's drivers instead of attempting arbitrary WebUSB writes to
 
 1. Install and configure BRLTTY for the exact model. On Debian/Ubuntu, the relevant packages typically include `brltty` and `python3-brlapi`.
 2. Verify BRLTTY itself operates the display, and that your user can authenticate to its local BrlAPI service. Keep the service local. Authentication normally uses the system BrlAPI key and permissions.
-3. Start Braily from a terminal/TTY recognized by BrlAPI. If it cannot infer a TTY in a desktop session, start from a configured terminal with `WINDOWID` or the appropriate `CONTROLVT`; do not guess a device-specific driver protocol.
-4. Set `BRLAPI_PYTHON` in `.env` to the Python interpreter that has the system `brlapi` binding, and restart Braily.
+3. Start Brailly from a terminal/TTY recognized by BrlAPI. If it cannot infer a TTY in a desktop session, start from a configured terminal with `WINDOWID` or the appropriate `CONTROLVT`; do not guess a device-specific driver protocol.
+4. Set `BRLAPI_PYTHON` in `.env` to the Python interpreter that has the system `brlapi` binding, and restart Brailly.
 5. In **Hardware**, choose **Try local BRLTTY connection**. A successful connection reports the actual driver and width from BrlAPI. Errors are displayed directly.
 6. Read the output, trigger a notice, then Resume. Use the web controls to pan. Disconnect when finished to release the TTY.
 

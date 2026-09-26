@@ -1,9 +1,9 @@
-# Reflow: implementación y defensa ante los cinco criterios del jurado
+# Brailly: implementación y defensa ante los cinco criterios del jurado
 
 **Fecha de revisión:** 26/09/2026.  
-**Estado:** diseño propuesto, sin implementación ni mediciones de Reflow realizadas en esta revisión.  
-**Decisión:** mantener Reflow y fortalecer la prueba de utilidad, el papel de Jev y la ingeniería del scheduler.  
-**Precedencia:** este documento corrige los detalles técnicos del [masterplan](./JEVATHON_REFLOW_MASTERPLAN.md) sobre versiones, retorno a la lectura y evento principal. Las [reglas de originalidad y entrega](./JEVATHON_RULES_AND_DELIVERY.md) siguen aplicando.
+**Estado:** diseño propuesto, sin implementación ni mediciones de Brailly realizadas en esta revisión.  
+**Decisión:** mantener Brailly y fortalecer la prueba de utilidad, el papel de Jev y la ingeniería del scheduler.  
+**Precedencia:** este documento corrige los detalles técnicos del [masterplan](./JEVATHON_BRAILLY_MASTERPLAN.md) sobre versiones, retorno a la lectura y evento principal. Las [reglas de originalidad y entrega](./JEVATHON_RULES_AND_DELIVERY.md) siguen aplicando.
 
 ## 1. La versión que construiríamos
 
@@ -285,7 +285,7 @@ Mantener foco estable, botones nativos, etiquetas claras y un registro de avisos
 1. **Immediate:** publica cada aviso del escenario. Comparador artificial.
 2. **Freeze:** conserva la lectura hasta acción explícita. Comparador artificial.
 3. **Rules:** campos conocidos, prioridades de origen y fase explícita de la tarea; no una baseline deliberadamente tonta.
-4. **Reflow:** mismas reglas deterministas más clasificación Jev de avisos abiertos.
+4. **Brailly:** mismas reglas deterministas más clasificación Jev de avisos abiertos.
 
 Si queda tiempo, sustituir Jev por un LLM rápido en el mismo contrato. Misma entrada, mismas opciones y misma salida exigida; no comparar una etiqueta con un ensayo de varios párrafos. Reportar configuración, modelo, fallos, red y mediciones completas.
 
@@ -356,7 +356,7 @@ Los tests de reglas/versiones pueden usar un proveedor falso identificado como t
 
 **Cómo fortalecerlo:** definir un usuario y una tarea, documentar la conducta de un flujo concreto y buscar validación con usuarios cuando estén disponibles. La conversación debe explorar qué interrumpe, qué necesita conservar y cuándo prefiere revisar novedades; no pedir que confirmen nuestro pitch. Registrar observaciones y desacuerdos, con consentimiento, sin presentar una entrevista como estudio representativo.
 
-Hay soporte primario para el problema general: W3C describe cómo las actualizaciones pueden romper continuidad y contempla control del usuario sobre interrupciones. Eso fundamenta el área del problema, no la efectividad de Reflow. [W3C: interrupciones](https://www.w3.org/WAI/WCAG22/Understanding/interruptions.html).
+Hay soporte primario para el problema general: W3C describe cómo las actualizaciones pueden romper continuidad y contempla control del usuario sobre interrupciones. Eso fundamenta el área del problema, no la efectividad de Brailly. [W3C: interrupciones](https://www.w3.org/WAI/WCAG22/Understanding/interruptions.html).
 
 Un cuidado con la evidencia histórica: el reporte de NVDA #7756 sobre live regions y braille está cerrado y vinculado a la versión 2023.2. No usarlo como prueba de que ese fallo sigue vigente en septiembre de 2026. [Reporte original de NVDA](https://github.com/nvaccess/nvda/issues/7756).
 
@@ -467,7 +467,7 @@ Si el tiempo de presentación real es menor, priorizar tarea, decisión en vivo 
 
 | Afirmación | Estado y condición |
 |---|---|
-| «El problema de interrupciones merece control del usuario». | Respaldado por fuentes primarias de accesibilidad, sin demostrar todavía el caso de Reflow. |
+| «El problema de interrupciones merece control del usuario». | Respaldado por fuentes primarias de accesibilidad, sin demostrar todavía el caso de Brailly. |
 | «Jev puede devolver una decisión cerrada sobre texto». | Documentado por el proveedor; implementación del proyecto pendiente. |
 | «Nuestro runtime conserva posición y no aplica respuestas obsoletas». | Decirlo después de implementarlo y verificarlo. |
 | «Nuestro clasificador mejora frente a reglas». | Pendiente de evaluación comparable. |
@@ -500,11 +500,11 @@ La rúbrica y las reglas proceden del texto facilitado por el usuario. Este docu
 
 ## 23. Conclusiones de la lectura de la documentación oficial
 
-**Lectura ampliada del 26/09/2026:** State, System One, API, Choice, Models, How to build with TypeSafe, Speculative fan-out, Confidence, Confidence-gated routing, Example use cases y limitaciones de Jev 1.13. Esta revisión fue documental: no incluyó llamadas de inferencia ni pruebas de Reflow.
+**Lectura ampliada del 26/09/2026:** State, System One, API, Choice, Models, How to build with TypeSafe, Speculative fan-out, Confidence, Confidence-gated routing, Example use cases y limitaciones de Jev 1.13. Esta revisión fue documental: no incluyó llamadas de inferencia ni pruebas de Brailly.
 
-**Conclusión de diseño:** el clasificador contextual que necesita Reflow encaja con las primitivas documentadas. La capacidad de expresar esa consulta está confirmada; la precisión, latencia y utilidad del producto siguen pendientes de evaluación.
+**Conclusión de diseño:** el clasificador contextual que necesita Brailly encaja con las primitivas documentadas. La capacidad de expresar esa consulta está confirmada; la precisión, latencia y utilidad del producto siguen pendientes de evaluación.
 
-| Qué documenta TypeSafe | Consecuencia para Reflow |
+| Qué documenta TypeSafe | Consecuencia para Brailly |
 |---|---|
 | `state` acepta texto y JSON con contexto de aplicación. | Enviar tarea explícita, bloque leído y aviso nuevo. No necesitamos capturas para este flujo. |
 | `Choice` selecciona entre opciones definidas y devuelve probabilidades y confianza. | Las cuatro disposiciones propuestas son representables. `NONE` es una opción nuestra, no una abstención infalible del proveedor. |
@@ -519,7 +519,7 @@ Pregunta concreta a evaluar:
 
 El siguiente paso debe estar presente en el estado. Jev no debe deducir la ubicación física, intención o preferencias de alguien a partir de datos que no le dimos. Mantener criterios claros para distinguir efecto inmediato, relevancia posterior, irrelevancia e información insuficiente.
 
-**Unidades de velocidad:** la guía de construcción describe muchas consultas alrededor de **100 ms = 0,1 segundos**, no 0,1 milisegundos. El rango de 70–500 ms citado antes procede del anuncio del proveedor. Son afirmaciones publicadas bajo distintos contextos, no medidas propias ni una garantía de latencia para Reflow. Medir la cadena completa, incluida espera, red y publicación.
+**Unidades de velocidad:** la guía de construcción describe muchas consultas alrededor de **100 ms = 0,1 segundos**, no 0,1 milisegundos. El rango de 70–500 ms citado antes procede del anuncio del proveedor. Son afirmaciones publicadas bajo distintos contextos, no medidas propias ni una garantía de latencia para Brailly. Medir la cadena completa, incluida espera, red y publicación.
 
 **Confianza y exactitud son distintas:** la documentación explica que la confianza se calcula a partir de la distribución y que la calibración se evalúa sobre conjuntos de predicciones. Una decisión individual puede ser incorrecta aun respetando perfectamente el esquema. No mostrar «sin alucinaciones» como equivalente a «no se equivoca al decidir cuándo interrumpir».
 

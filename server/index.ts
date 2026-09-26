@@ -19,5 +19,5 @@ app.post('/api/hardware/connect',(_req,res)=>{if(bridge)return res.json(hardware
 app.post('/api/hardware/disconnect',(_req,res)=>{bridge?.kill();bridge=null;hardware={connected:false,message:'Disconnected'};res.json(hardware);});
 app.post('/api/hardware/write',(req,res)=>{const p=z.object({text:z.string().max(160)}).safeParse(req.body);if(!p.success)return res.status(400).json({error:'Invalid output'});if(!bridge||!hardware.connected)return res.status(409).json({error:'No display connected'});bridge.stdin.write(JSON.stringify({type:'write',text:p.data.text})+'\n');res.json({queued:true});});
 if(process.env.NODE_ENV==='production')app.use(express.static('dist'));else {const vite=await createViteServer({server:{middlewareMode:true},appType:'spa'});app.use(vite.middlewares);}
-app.listen(port,'127.0.0.1',()=>console.log(`Braily is ready at http://127.0.0.1:${port}`));
+app.listen(port,'127.0.0.1',()=>console.log(`Brailly is ready at http://127.0.0.1:${port}`));
 process.on('SIGTERM',()=>{bridge?.kill();process.exit(0);});process.on('SIGINT',()=>{bridge?.kill();process.exit(0);});
