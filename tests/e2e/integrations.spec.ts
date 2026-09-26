@@ -135,3 +135,30 @@ test('starting source speech before visual ranking retains that block and its au
   await emit(page,'rank');await emit(page,'done');await expect(output(page)).toHaveValue(paragraph.slice(0,40));expect(await page.evaluate(()=>(window as unknown as TestWindow).__ttsAbort)).toBe(false);
   await page.evaluate(()=>(window as unknown as TestWindow).__ttsResolve());await expect.poll(()=>page.evaluate(()=>(window as unknown as TestWindow).__audioPlays)).toBe(1);await expect(page.getByRole('button',{name:'Stop',exact:true})).toBeVisible();
 });
+
+test('alert and visual captures cancel the previous job and restore the appropriate reader panel',async({page})=>{
+  let rankCalls=0;
+  await installVisualStream(page);
+  await page.route('**/api/rank',route=>{
+    rankCalls++;
+    const {page:snapshot,task,context}=route.request().postDataJSON() as {page:PageSnapshot;task:string;context?:unknown};
+    return route.fulfill({json:{snapshotId:snapshot.id,task,model:'TEST-ONLY-MOCK',source:'Jev',latencyMs:5,request:{testOnly:true},results:snapshot.blocks.map(block=>({id:block.id,category:'CONTENT',score:block.text.startsWith('Street elevator')?3:1,confidence:1,categoryConfidence:1,priority:'NOW',probabilities:{'0':0,'1':block.text.startsWith('Street elevator')?0:1,'2':0,'3':block.text.startsWith('Street elevator')?1:0}})),transition:context?{choice:'DEFER',confidence:1,probabilities:{DEFER:1,INTERRUPT:0,QUEUE_HIGH:0,NONE:0}}:undefined}});
+  });
+  await openVisual(page);await tab(page,'Read');await page.getByLabel('Voice provider').selectOption('elevenlabs');await page.getByRole('button',{name:'Listen',exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>(window as unknown as TestWindow).__ttsCalls.length)).toBe(1);
+  await page.getByRole('button',{name:'Play alert demo',exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>(window as unknown as TestWindow).__visualAbort)).toBe(true);await expect.poll(()=>page.evaluate(()=>(window as unknown as TestWindow).__ttsAbort)).toBe(true);
+  await emit(page,'evidence');await emit(page,'rank');
+  await expect(output(page)).toHaveValue(/^Street elevator in service/);
+  await expect(page.getByRole('complementary',{name:'Live alert demonstration'})).toBeVisible();
+  await expect(page.locator('.queue-panel')).toHaveCount(0);await expect(page.locator('.visual-details')).toHaveCount(0);
+  await tab(page,'Analyze');await page.getByLabel('Website',{exact:true}).fill('https://fixture.example/visual-demo.html');await page.getByRole('button',{name:'Open with visual context',exact:true}).click();
+  await expect(page.locator('.visual-details')).toBeVisible();await emit(page,'evidence');await emit(page,'rank');await emit(page,'done');await tab(page,'Read');
+  await expect(page.getByRole('complementary',{name:'Live alert demonstration'})).toHaveCount(0);await expect(page.locator('.queue-panel')).toBeVisible();
+  const retained=await output(page).inputValue();
+  // The old elevator timer fires after 1.4s; it must not mutate the new source.
+  await page.waitForTimeout(1700);
+  await expect(output(page)).toHaveValue(retained);expect(rankCalls).toBe(1);
+  await page.evaluate(()=>(window as unknown as TestWindow).__ttsResolve());expect(await page.evaluate(()=>(window as unknown as TestWindow).__audioPlays)).toBe(0);
+  await expect(page.getByRole('button',{name:/^Open visual detail 1/})).toBeVisible();
+});

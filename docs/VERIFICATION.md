@@ -2,7 +2,9 @@
 
 ## Integration run · 26 September 2026
 
-The integration was built on the updated `cfd90d6` codebase after preserving the local work and pulling upstream. At this checkpoint, `npm test` passes 93 tests, `npx tsc --noEmit` passes, and all 34 Playwright tests pass (42.2 seconds). This includes the 22 existing browser regressions and 12 new Browserbase/TTS coordination cases. The production build also passed.
+The integration was initially verified on `cfd90d6`, then merged with all six newer upstream commits through `e2606b9` before pushing main. On the merged codebase, `npm test` passes 93 tests, TypeScript passes, and all 40 Playwright tests pass (43.5 seconds) against a fresh local server. This includes the original reader regressions, Browserbase/TTS coordination, the upstream alert walkthrough and device layouts, and three additional merge-review regressions. The production build also passed and rebuilt extension version 0.3.1.
+
+The merge preserves the new Braille theme and alert walkthrough alongside visual capture and speech. Switching between alert and visual demos cancels obsolete capture, audio and alert timers. Review also found and fixed viewport coordinates being used for document-coordinate screenshot clips: a real Chromium/CDP regression now confirms that pixel changes below the fold are detected after horizontal and vertical scrolling. The new motion regression checks reduced-motion defaults, keyboard Play/Pause and preference persistence. Tracked sources, the extension archive and the production client bundle were checked against local credentials with no matches; `.env` remains ignored.
 
 The new browser tests use explicitly labelled test-only streams, model responses and audio adapters. They verify behavior under controlled late results; they are not evidence of provider accuracy or availability. Both event arrival orders preserve a nonzero text offset, Braille page 2, queue order and keyboard focus. Tests also cover closing a visual dialog and returning focus, obsolete task cancellation, cancel/disconnect after snapshot, image-only captures without empty DOM ranking, normalized tasks, Stop while TTS is loading, closing a speaking detail, separately listening to recognized text, starting speech before visual ranking, and switching source blocks while audio plays. Axe reports no violations in the new visual dialog.
 
@@ -24,7 +26,9 @@ Remaining coverage includes authenticated sessions, vision of extension captures
 
 ## Earlier upstream verification
 
-The following evidence was retained from the upstream documentation (51 unit tests and 22 browser tests at that checkpoint). Real-site observations here were not re-run as part of the Browserbase/TTS mock suite. The new live Jev integration evidence is recorded separately above.
+The following evidence was retained from the upstream documentation (51 unit tests and 25 browser tests at that checkpoint). Real-site observations here were not re-run as part of the Browserbase/TTS mock suite. The new live Jev integration evidence is recorded separately above.
+
+Alert walkthrough: real Jev returned INTERRUPT in 164 ms after the controlled elevator DOM change. Regression tests also exercise DEFER and exact reading restoration, and check all four hardware profiles at widths of 360, 820, 1024, 1440 and 1920 pixels without horizontal clipping. SFMTA's official elevator page was imported and classified separately; no real outage was triggered.
 
 
 | Check | Result | Evidence |

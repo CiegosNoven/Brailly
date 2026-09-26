@@ -172,6 +172,18 @@ const browserPrelude = "const __name = (fn) => fn;";
 export function captureScript() {
   return `(() => {${browserPrelude} const page=(${extractDocument.toString()})(document,location.href,true);page.source='browserbase';return {page,inventory:(${extractVisualDocument.toString()})(document,true)};})()`;
 }
+// Serialized into the page. CDP screenshot clips use document coordinates.
+export function visualDocumentClip(locator: string) {
+  const target = document.querySelector(locator);
+  if (!target) throw new Error("Visual no longer exists.");
+  const r = target.getBoundingClientRect();
+  return {
+    x: r.x + scrollX,
+    y: r.y + scrollY,
+    width: r.width,
+    height: r.height,
+  };
+}
 export async function openVisualBrowser(
   signal: AbortSignal,
   options: {
@@ -370,12 +382,7 @@ export async function openVisualBrowser(
           );
         const pixelSignature = async () => {
           const clip = await abortable(
-            page!.evaluate((locator: string) => {
-              const r = document
-                .querySelector(locator)!
-                .getBoundingClientRect();
-              return { x: r.x, y: r.y, width: r.width, height: r.height };
-            }, candidate.locator),
+            page!.evaluate(visualDocumentClip, candidate.locator),
             s,
           );
           return createHash("sha256")
