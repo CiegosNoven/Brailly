@@ -13,7 +13,7 @@ cp .env.example .env
 npm run dev
 ```
 
-The demo accepts public website URLs and includes a sample museum website. URL imports are sanitized HTML snapshots; use the Chrome extension for a live rendered DOM. Each captured block gets a real Jev Score (0–3 relevance) and Choice (content, action, navigation, notice or extra). No generated summaries or fabricated AI scores are substituted when the service fails.
+The demo accepts public website URLs and includes a shortcut to the [AI Collective × Jev event on Luma](https://luma.com/aic-jev). URL imports are sanitized HTML snapshots; use the Chrome extension for a live rendered DOM. Each captured block gets a real Jev Score (0–3 relevance) and Choice (content, action, navigation, notice or extra). No generated summaries or fabricated AI scores are substituted when the service fails.
 
 ## Extension
 
