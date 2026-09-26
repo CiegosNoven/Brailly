@@ -51,7 +51,8 @@
 .hw-device {
   position: relative;
   max-width: 1120px;
-  min-width: 790px;
+  min-width: 0;
+  width: 100%;
   margin: 0 auto;
   padding: 16px 25px 0;
   color: #eef0e9;
@@ -75,10 +76,10 @@
 }
 .hw-device.hw-size-20 {
   max-width: 730px;
-  min-width: 480px;
+  min-width: 0;
 }
 .hw-device.hw-size-80 {
-  min-width: 1430px;
+  min-width: 0;
 }
 .hw-device.hw-focus {
   border-radius: 12px 12px 19px 19px;
@@ -427,7 +428,7 @@
   right: 11px;
 }
 .hw-update {
-  outline: 2px solid #859a64;
+  outline: 2px solid #b77735;
   outline-offset: 5px;
 }
 .hw-readout {
@@ -515,7 +516,7 @@
     margin-right: -18px;
   }
   .hw-device.hw-size-20 {
-    min-width: 440px;
+    min-width: 0;
   }
   .hw-side-control {
     width: 44px;
@@ -547,7 +548,7 @@
     border-radius: 12px 12px 17px 17px;
   }
   .hw-device.hw-size-80 {
-    min-width: 1120px;
+    min-width: 0;
   }
   .hw-nameplate {
     padding: 0 6px;
@@ -728,4 +729,21 @@
   .hw-thumb-controls > button.hw-space {
     max-width: 135px;
   }
+}
+
+/* Each rail cell sizes its dots locally, so even an 80-cell device fits the reader. */
+.hw-workspace .hw-cell { container-type: inline-size; }
+.hw-workspace .hw-device .hw-dots {
+  --dot-size: clamp(.6px, 23cqw, 5px);
+  grid-template-columns: repeat(2, var(--dot-size));
+  grid-template-rows: repeat(4, var(--dot-size));
+  column-gap: clamp(.5px, 12cqw, 4px);
+  row-gap: clamp(1px, 12cqw, 4px);
+}
+.hw-workspace .hw-device .hw-cell .hw-dots i { width:var(--dot-size); height:var(--dot-size); }
+.hw-workspace .hw-device.hw-size-80 .hw-cell-rail { gap:1px; padding-inline:3px; }
+.hw-scroll { overflow-x:visible; }
+@container (max-width:480px) {
+  .hw-thumb-controls > button { min-width:0; }
+  .hw-nameplate strong { font-size:15px; }
 }

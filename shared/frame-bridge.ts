@@ -21,7 +21,7 @@ const capture = () => {
   const next = snapshotSignature(page);
   if (next === signature) return;
   signature = next;
-  page.source = ["/example.html", "/museum-tickets.html"].includes(
+  page.source = ["/example.html", "/museum-tickets.html", "/access-demo.html"].includes(
     new URL(config.url).pathname,
   )
     ? "example"
@@ -111,6 +111,15 @@ window.addEventListener("message", (event) => {
     return;
   }
   if (m.type === "demo-update") {
+    if (m.kind === 'elevator') {
+      const elevator = document.querySelector('[data-demo="elevator"]');
+      if (elevator) {
+        elevator.textContent = 'Street elevator out of service. Step-free access to the platform is unavailable. Do not use this entrance.';
+        elevator.setAttribute('data-closed', '');
+        elevator.setAttribute('role', 'alert');
+      }
+      return;
+    }
     const target = document.querySelector(
       `[data-demo="${m.kind === "entrance" ? "entrance" : m.kind === "hours" ? "hours" : "noise"}"]`,
     );

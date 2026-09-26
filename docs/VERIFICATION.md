@@ -1,6 +1,8 @@
 # Brailly verification
 
-Local checks: 51 unit tests and 22 browser tests pass. Production build passes. Browser tests use explicit test-only model responses; live Jev checks are separate.
+Local checks: 51 unit tests and 25 browser tests pass. Production build passes. Browser tests use explicit test-only model responses; live Jev checks are separate.
+
+Alert walkthrough: real Jev returned INTERRUPT in 164 ms after the controlled elevator DOM change. Regression tests also exercise DEFER and exact reading restoration, and check all four hardware profiles at widths of 360, 820, 1024, 1440 and 1920 pixels without horizontal clipping. SFMTA's official elevator page was imported and classified separately; no real outage was triggered.
 
 | Check | Result | Evidence |
 | --- | --- | --- |

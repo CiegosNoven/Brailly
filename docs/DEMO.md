@@ -1,5 +1,9 @@
 # Brailly demo
 
+Choose **Play alert demo** for a one-click walkthrough. A fictional station page changes its elevator from in service to unavailable. Brailly observes the real DOM mutation, asks Jev whether to interrupt, and shows the source before/after beside the complete device. The UI displays the returned decision, including DEFER if Jev chooses to hold reading. An interruption saves the original position for **Resume reading**. The verified live run returned INTERRUPT in 164 ms; that timing is an observation, not a fixed demo value.
+
+**Muni elevators** opens [SFMTA's official status page](https://www.sfmta.com/elevator-status/elevatorstatus.php?src=prod). Its published station statuses and timestamp were verified through the actual importer and Jev. Use the extension to observe rendered changes, or Refresh source page for a new imported snapshot. The fictional outage in the walkthrough is not an SFMTA incident.
+
 Open [Brailly](https://brailly-jev.vercel.app). Analyze shows the webpage and Jev; Read shows the device. The reading queue remains available in both tabs.
 
 1. Load **Museum demo** and use the task: `Find the opening hours, ticket price, and accessible entrance.` Choose **Analyze page**. Watch the queue move from pending to ranked when the batch response arrives. Expand **Jev** to inspect the endpoint, input/output tokens and request.

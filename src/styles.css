@@ -517,3 +517,13 @@ footer a:hover { color: var(--ink); text-decoration: underline; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* Alert demo + change panel on the signal palette */
+.hero-copy { max-width: min(920px, calc(100% - 32px)); }
+.hero .page-heading { margin: 0; }
+.alert-demo-button { background: var(--surface); }
+.alert-demo-button:not(:disabled):hover { background: var(--soft); }
+.change-source { background: var(--soft); }
+.change-source-alert { background: #fdf1f7; color: #6e0d3f; border-color: #efc7dd; }
+.change-source-alert span { color: #6e0d3f; }
+.change-decision-alert strong { color: var(--accent); }
