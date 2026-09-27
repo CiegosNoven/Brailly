@@ -98,6 +98,8 @@ export default function App() {
   const watchTick = useRef<() => void>(() => {});
   const [watchStatus, setWatchStatus] = useState("");
   const [updateAudio, setUpdateAudio] = useState(true);
+  const updateAudioRef = useRef(updateAudio);
+  updateAudioRef.current = updateAudio;
   const [changeNotice, setChangeNotice] = useState("");
   const [toneBlocked, setToneBlocked] = useState(false);
   const tone = useRef<ChangeTone | null>(null);
@@ -568,7 +570,7 @@ export default function App() {
           );
           speech.stop();
           setChangeNotice(`Braille updated: ${changedBlocks[0].text}`);
-          if (updateAudio) setToneBlocked(!tone.current?.play());
+          if (updateAudioRef.current) setToneBlocked(!tone.current?.play());
           setReading(changedBlocks[0]);
           setSelected(changedBlocks[0].id);
           setOffset(0);
@@ -580,7 +582,7 @@ export default function App() {
           if (decision === "QUEUE_HIGH" && changedBlocks[0]) {
             const notice = `Page update. ${changedBlocks[0].text}`.slice(0, 800);
             setChangeNotice(notice);
-            if (updateAudio && capabilities.elevenlabsTts.available) {
+            if (updateAudioRef.current && capabilities.elevenlabsTts.available) {
               speech.setProvider("elevenlabs");
               void speech.speak(notice, { kind: "alert", id: target.id });
             }

@@ -84,3 +84,21 @@ test('partial visual review retains text and makes no interruption decision', as
   expect(trace.requests).toHaveLength(0);
   await expect(page.locator('#reading-output')).toHaveValue(before);
 });
+
+test('muting updates while Jev is deciding suppresses the late voice alert', async ({page}) => {
+  await setup(page,'QUEUE_HIGH');
+  let release!: () => void;
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  let requested = false;
+  await page.route('**/api/rank', async route => {
+    const body = route.request().postDataJSON(); requested = true;
+    await pending;
+    await route.fulfill({json:{snapshotId:body.page.id,task:body.task,model:'TEST',latencyMs:1,source:'Jev',request:{},results:body.page.blocks.map((b:{id:string;tag:string})=>({id:b.id,category:'NOTICE',score:b.tag==='figure'?3:1,priority:'NOW',confidence:1})),transition:{choice:'QUEUE_HIGH',confidence:1}}});
+  });
+  await page.clock.fastForward(30_000);
+  await expect.poll(()=>requested).toBe(true);
+  await page.getByLabel('Update sounds',{exact:true}).uncheck();
+  release();
+  await expect(page.locator('.change-notice')).toContainText('East entrance closed.');
+  expect(await page.evaluate(()=>(window as unknown as TraceWindow).voices+(window as unknown as TraceWindow).sounds)).toBe(0);
+});

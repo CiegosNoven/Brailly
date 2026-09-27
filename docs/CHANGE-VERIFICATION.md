@@ -12,7 +12,7 @@ Scope: the control search, automatic visual review controls, update audio, and t
 ## Evidence
 
 - 93 unit tests passed, including authenticated extension routing, rejection of a stale snapshot, and prevention of concurrent duplicate activations.
-- 37 distinct browser tests passed across controls, extension capture/reader, integrations, visual monitoring, alert demo, and accessibility.
+- 38 distinct browser tests passed across controls, extension capture/reader, integrations, visual monitoring, alert demo, and accessibility.
 - Manual browser check: search for Book your tickets, select it with the keyboard, verify focus in the reading line, then Enter opens the ticket demo.
 - Production build completed, including extension version 0.4.0.
 
@@ -26,6 +26,7 @@ Provider results in the automated change tests are fixtures. Those tests verify 
 - Identical subsequent observations do not trigger another decision or alert.
 - Partial visual captures retain the reading and do not issue a change decision.
 - Stop automatic checks prevents later scheduled captures.
+- Muting updates while Jev is deciding suppresses the late audio response.
 - Changed destinations, disabled controls, hidden controls, and old capture sessions are rejected.
 
 Browserbase checks configured public HTTPS origins using fresh remote captures. It does not share the extension's signed-in session. Physical Braille hardware has not been tested.
