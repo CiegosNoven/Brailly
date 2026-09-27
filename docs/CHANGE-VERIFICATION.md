@@ -11,12 +11,14 @@ Scope: the control search, automatic visual review controls, update audio, and t
 
 ## Evidence
 
-- 93 unit tests passed, including authenticated extension routing, rejection of a stale snapshot, and prevention of concurrent duplicate activations.
+- 94 unit tests passed, including authenticated extension routing, rejection of a stale snapshot, and prevention of concurrent duplicate activations.
 - 38 distinct browser tests passed across controls, extension capture/reader, integrations, visual monitoring, alert demo, and accessibility.
 - Manual browser check: search for Book your tickets, select it with the keyboard, verify focus in the reading line, then Enter opens the ticket demo.
 - Production build completed, including extension version 0.4.0.
 
 Provider results in the automated change tests are fixtures. Those tests verify client behavior for each Jev decision, without pretending that the model always chooses a predetermined result. Live provider checks are separate.
+
+The visual stability check decodes PNG pixels and tolerates at most one 8-bit color level per channel, avoiding a Chromium antialiasing false positive. Any larger pixel change, changed dimensions, or changed DOM signature still rejects the observation. A dedicated regression test checks that boundary.
 
 ## Behavior checked
 

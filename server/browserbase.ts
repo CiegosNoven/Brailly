@@ -1,5 +1,5 @@
 import { lookup } from "node:dns/promises";
-import { createHash } from "node:crypto";
+import { sameVisualPixels } from "./visual-pixels.js";
 import { z } from "zod";
 import {
   browserbase,
@@ -380,16 +380,14 @@ export async function openVisualBrowser(
           throw new Error(
             "The complete visual does not fit in the viewport; no description was attached.",
           );
-        const pixelSignature = async () => {
+        const capturePixels = async () => {
           const clip = await abortable(
             page!.evaluate(visualDocumentClip, candidate.locator),
             s,
           );
-          return createHash("sha256")
-            .update(await abortable(page!.screenshot({ clip }), s))
-            .digest("hex");
+          return abortable(page!.screenshot({ clip }), s);
         };
-        const pixelsBefore = await pixelSignature();
+        const pixelsBefore = await capturePixels();
         const observedAt = new Date().toISOString();
         const result = await abortable(
           stagehand!.extract(
@@ -408,11 +406,11 @@ export async function openVisualBrowser(
         const after = (await abortable(inventory(), s)).candidates.find(
           (c) => c.candidateId === candidate.candidateId,
         );
-        const pixelsAfter = await pixelSignature();
+        const pixelsAfter = await capturePixels();
         if (
           !after ||
           after.signature !== candidate.signature ||
-          pixelsBefore !== pixelsAfter ||
+          !sameVisualPixels(pixelsBefore, pixelsAfter) ||
           (await abortable(page!.url(), s)) !== capturedUrl
         )
           throw new Error(
