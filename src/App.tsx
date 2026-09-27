@@ -36,10 +36,13 @@ import { toBraille } from "./braille";
 import { frameDocument } from "./frame";
 import BrailleDevice from "./BrailleDevice";
 import ReadingQueue from "./ReadingQueue";
+import PageControls from './PageControls';
+import type { ControlResult } from '../shared/page-controls';
 import { useSpeech } from "./useSpeech";
 import { useVisualCapture } from "./useVisualCapture";
 import VisualDetails from "./VisualDetails";
-import type { VisualEvent } from "../shared/visual";
+import { ChangeTone, withVisualEvidence } from "./change-feedback";
+import type { VisualEvidence, VisualEvent } from "../shared/visual";
 import BrailleField from "./BrailleField";
 import ChangeDemo, { ELEVATOR_SITE } from "./ChangeDemo";
 import {
@@ -87,6 +90,34 @@ export default function App() {
   const [modal, setModal] = useState<"extension" | "hardware" | null>(null);
   const speech = useSpeech({ apiBase: API });
   const visual = useVisualCapture(API);
+  const [watchVisual, setWatchVisual] = useState(false);
+  const watchEnabled = useRef(false);
+  const watchGeneration = useRef(0);
+  const watchRunning = useRef(false);
+  const watchBaseline = useRef<PageSnapshot | null>(null);
+  const watchTick = useRef<() => void>(() => {});
+  const [watchStatus, setWatchStatus] = useState("");
+  const [updateAudio, setUpdateAudio] = useState(true);
+  const [changeNotice, setChangeNotice] = useState("");
+  const [toneBlocked, setToneBlocked] = useState(false);
+  const tone = useRef<ChangeTone | null>(null);
+  useEffect(() => {
+    const sound = new ChangeTone();
+    tone.current = sound;
+    const unlock = () => { void sound.unlock(); };
+    window.addEventListener("pointerdown", unlock);
+    window.addEventListener("keydown", unlock);
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+      sound.close();
+    };
+  }, []);
+  useEffect(() => {
+    if (!watchVisual) return;
+    const timer = setInterval(() => watchTick.current(), 30_000);
+    return () => clearInterval(timer);
+  }, [watchVisual]);
   const speaking =
     speech.content?.kind === "source" &&
     (speech.status === "loading" ||
@@ -207,6 +238,13 @@ export default function App() {
     alertTimer.current = null;
   }
   function invalidateVisualWork() {
+    watchEnabled.current = false;
+    watchGeneration.current++;
+    setWatchVisual(false);
+    watchBaseline.current = null;
+    setWatchStatus("");
+    setChangeNotice("");
+    setToneBlocked(false);
     stopAlertPlayback();
     pageTaskGeneration.current++;
     adoptedVisual.current = null;
@@ -473,6 +511,7 @@ export default function App() {
     setError("");
     setStatus("Jev is scoring relevance and classifying each DOM block…");
     const goal = task;
+    const readingCellOffset = liveReading.current.cellOffset;
     try {
       const { previewHtml, ...payload } = target;
       setCalls((n) => n + 1);
@@ -524,9 +563,12 @@ export default function App() {
               prior || {
                 block: context.current,
                 offset: context.offset,
-                cellOffset,
+                cellOffset: readingCellOffset,
               },
           );
+          speech.stop();
+          setChangeNotice(`Braille updated: ${changedBlocks[0].text}`);
+          if (updateAudio) setToneBlocked(!tone.current?.play());
           setReading(changedBlocks[0]);
           setSelected(changedBlocks[0].id);
           setOffset(0);
@@ -534,10 +576,17 @@ export default function App() {
           setStatus(
             "Jev interrupted for a relevant update. Resume returns to your saved position.",
           );
-        } else
-          setStatus(
-            `Jev: ${decision}. Your reading position is held; changes remain available.`,
-          );
+        } else {
+          if (decision === "QUEUE_HIGH" && changedBlocks[0]) {
+            const notice = `Page update. ${changedBlocks[0].text}`.slice(0, 800);
+            setChangeNotice(notice);
+            if (updateAudio && capabilities.elevenlabsTts.available) {
+              speech.setProvider("elevenlabs");
+              void speech.speak(notice, { kind: "alert", id: target.id });
+            }
+          }
+          setStatus(`Jev: ${decision}. Your reading position is held; changes remain available.`);
+        }
       } else {
         const first = order[0];
         setReading(first || null);
@@ -626,6 +675,34 @@ export default function App() {
   const current =
     reading || page?.blocks.find((b) => b.id === selected) || ordered[0];
   const selectedIndex = ordered.findIndex((b) => b.id === current?.id);
+  async function activateControl(block: DomBlock): Promise<ControlResult> {
+    const snapshot = pageRef.current;
+    const captured = snapshot?.blocks.find(item => item.id === block.id);
+    if (!snapshot || !captured || blockSignature(captured) !== blockSignature(block))
+      return { ok: false, message: 'This control changed. Select it again from the updated page.' };
+    speech.stop();
+    if (extension && snapshot.source === 'extension')
+      return chrome.runtime.sendMessage({ type: 'activate-control', snapshotId: snapshot.id, id: block.id });
+    if (!frame || !iframe.current?.contentWindow)
+      return { ok: false, message: 'Use the extension to interact with this page.' };
+    const target = iframe.current.contentWindow;
+    const token = frame.token;
+    return new Promise(resolve => {
+      const requestId = crypto.randomUUID();
+      const finish = (result: ControlResult) => {
+        clearTimeout(timeout);
+        window.removeEventListener('message', listener);
+        resolve(result);
+      };
+      const listener = (event: MessageEvent) => {
+        if (event.source === target && event.data?.token === token && event.data.type === 'control-result' && event.data.requestId === requestId)
+          finish(event.data.result);
+      };
+      const timeout = setTimeout(() => finish({ ok: false, message: 'The page did not respond. Capture it again.' }), 5000);
+      window.addEventListener('message', listener);
+      target.postMessage({ token, requestId, type: 'activate-control', block }, '*');
+    });
+  }
   const text = current?.text || "";
   const chars = Array.from(text);
   const line = chars.slice(offset, offset + cells).join("");
@@ -737,6 +814,11 @@ export default function App() {
   async function openVisualCapture() {
     if (extension || !capabilities.visualEnabled || task.trim().length < 3)
       return;
+    watchEnabled.current = false;
+    watchGeneration.current++;
+    setWatchVisual(false);
+    watchBaseline.current = null;
+    setWatchStatus("");
     stopAlertPlayback();
     const generation = ++pageTaskGeneration.current;
     adoptedVisual.current = null;
@@ -754,6 +836,7 @@ export default function App() {
     setError("");
     let interactionAtSnapshot = readerInteractionRevision.current;
     let captured: PageSnapshot | null = null;
+    const evidence: VisualEvidence[] = [];
     const raw = url.trim();
     try {
       await visual.start(
@@ -796,11 +879,17 @@ export default function App() {
               "Jev classified the captured source text. Your reading position is held if you have started reading.",
             );
           } else if (event.type === "visual-evidence") {
-            // Evidence only updates the separate details panel; source, queue and offsets are untouched.
+            evidence.push(...event.evidence);
             setStatus(
               `${event.evidence.length} visual details available. Open them when you choose.`,
             );
           } else if (event.type === "done") {
+            if (captured && event.status === "complete") {
+              watchBaseline.current = withVisualEvidence(captured, evidence);
+              watchEnabled.current = true;
+              setWatchVisual(true);
+              setWatchStatus("Checking every 30 seconds");
+            }
             setStatus(
               `Visual analysis ${event.status}. Your source text and reading position remain available.`,
             );
@@ -812,7 +901,72 @@ export default function App() {
         loadingSource.current = false;
     }
   }
+  async function checkVisualChanges() {
+    const previous = watchBaseline.current;
+    if (!watchEnabled.current || watchRunning.current || visual.state.busy || busy || !previous) return;
+    const generation = watchGeneration.current;
+    const taskGeneration = pageTaskGeneration.current;
+    watchRunning.current = true;
+    setWatchStatus("Checking the page and its images…");
+    let capture: PageSnapshot | null = null;
+    const evidence: VisualEvidence[] = [];
+    let complete = false;
+    try {
+      await visual.start(previous.url, task, event => {
+        if (event.type === "snapshot") capture = event.page;
+        if (event.type === "visual-evidence") evidence.push(...event.evidence);
+        if (event.type === "dom-ranked") {
+          setLastCall(event.classification);
+          setCalls(n => n + 1);
+        }
+        if (event.type === "done") complete = event.status === "complete";
+      });
+      if (!watchEnabled.current || generation !== watchGeneration.current || taskGeneration !== pageTaskGeneration.current) return;
+      if (!capture || !complete) {
+        setWatchStatus("Check incomplete. Keeping your text; retrying in 30 seconds.");
+        return;
+      }
+      const next = withVisualEvidence(capture, evidence);
+      if (snapshotSignature(previous) === snapshotSignature(next)) {
+        setWatchStatus("No changes · checking every 30 seconds");
+        return;
+      }
+      const retained = liveReading.current;
+      if (!retained.block) return;
+      pageRef.current = next;
+      setPage(next);
+      setChanged(true);
+      setWatchStatus("Jev is deciding how to handle the changes…");
+      await rank(next, { current: retained.block, offset: retained.offset, previousBlocks: previous.blocks });
+      if (generation !== watchGeneration.current || taskGeneration !== pageTaskGeneration.current) return;
+      // Advance only after a successful decision; failed or stale requests get another chance.
+      if (baseline.current === next) watchBaseline.current = next;
+      setWatchStatus("Checking every 30 seconds");
+    } finally { watchRunning.current = false; }
+  }
+  const liveReading = useRef({ block: current, offset, cellOffset });
+  liveReading.current = { block: current, offset, cellOffset };
+  watchTick.current = () => { void checkVisualChanges(); };
+  function toggleVisualWatch() {
+    const enabled = !watchEnabled.current;
+    watchEnabled.current = enabled;
+    setWatchVisual(enabled);
+    if (!enabled) {
+      watchGeneration.current++;
+      if (watchRunning.current) {
+        visual.cancel();
+        epoch.current++;
+        abort.current?.abort();
+        ranking.current = false;
+        setBusy(null);
+      }
+    }
+    setWatchStatus(enabled ? "Checking every 30 seconds" : "Automatic checks stopped");
+  }
   function cancelVisualCapture() {
+    watchEnabled.current = false;
+    watchGeneration.current++;
+    setWatchVisual(false);
     adoptedVisual.current = null;
     loadingSource.current = false;
     visual.cancel();
@@ -1195,6 +1349,10 @@ export default function App() {
             </button>
           ))}
         </div>
+        <PageControls page={page} current={current} onActivate={activateControl} onChoose={block => {
+          readBlock(block);
+          setActiveTab('read');
+        }} />
         <div
           className={`tab-workspace${accessDemo && activeTab === "read" ? " alert-workspace" : ""}`}
         >
@@ -1373,9 +1531,10 @@ export default function App() {
                       Cancel visual capture
                     </button>
                   )}
-                  <span className="coverage">
-                    New remote capture · public demo sites
-                  </span>
+                  {watchBaseline.current && <button className="subtle" onClick={toggleVisualWatch}>
+                    {watchVisual ? "Stop automatic checks" : "Resume automatic checks"}
+                  </button>}
+                  <span className="coverage" role="status">{watchStatus || "Browserbase · public demo sites"}</span>
                   {capabilities.visualAllowedOrigins.length > 0 && (
                     <details>
                       <summary>Supported demo sites</summary>
@@ -1722,6 +1881,10 @@ export default function App() {
           )}
         </div>
         <div className="voice-controls">
+          <label><input type="checkbox" checked={updateAudio} onChange={event => {
+            setUpdateAudio(event.target.checked);
+            if (!event.target.checked && speech.content?.kind === "alert") speech.stop();
+          }} /> Update sounds</label>
           <label htmlFor="voice-provider">Voice provider</label>
           <select
             id="voice-provider"
@@ -1746,12 +1909,12 @@ export default function App() {
                 Stop audio
               </button>
             )}
-          {speech.content?.kind === "source" && speech.needsPlay && (
+          {speech.content?.kind !== "visual" && speech.needsPlay && (
             <button className="subtle" onClick={() => void speech.retryPlay()}>
               Play audio
             </button>
           )}
-          {speech.content?.kind === "source" && speech.error && (
+          {speech.content?.kind !== "visual" && speech.error && (
             <div role="alert">
               <p>{speech.error}</p>
               {speech.provider === "elevenlabs" && (
@@ -1765,6 +1928,11 @@ export default function App() {
             </div>
           )}
         </div>
+        {changeNotice && <p className="change-notice" role="status">{changeNotice}</p>}
+        {toneBlocked && updateAudio && <button className="subtle" onClick={async () => {
+          await tone.current?.unlock();
+          setToneBlocked(!tone.current?.play());
+        }}>Play update sound</button>}
         {!extension && (
           <VisualDetails
             key={visual.state.requestId || "none"}

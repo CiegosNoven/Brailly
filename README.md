@@ -1,59 +1,112 @@
 # Brailly
 
-Brailly reads a website's DOM, asks Jev which blocks matter for your task, and sends the original text to a stable reading output. Analyze shows the webpage and API usage. Read shows the Braille device. Both tabs share a ranked reading queue.
+Brailly reads webpages in the order that matters for your task. Ask for the accessible entrance to a museum, and Jev ranks the access instructions above the shop promotion. If the entrance closes while you read, Brailly can show the update and save your place.
 
-[Open Brailly](https://brailly-jev.vercel.app) · [Demo walkthrough](docs/DEMO.md) · [Device connections](docs/HARDWARE.md)
+We built it for JEVATHON SF, with a Braille display simulator, a Chrome extension, and optional visual descriptions and speech.
 
-## Run locally
+[Live app](https://brailly-jev.vercel.app/) · [Download extension](https://brailly-jev.vercel.app/brailly-extension.zip) · [Demo walkthrough](docs/DEMO.md) · [Hardware](docs/HARDWARE.md)
 
-Use Node.js 22.18 or newer within the 22.x release line; the pinned Stagehand SDK requires at least 22.18.
+## Try the demo
 
-```sh
-npm install
-cp .env.example .env
-# Set TYPESAFE_API_KEY in .env.
-npm run dev
-```
+1. Open the [app](https://brailly-jev.vercel.app/), choose **Museum demo**, and ask: `Find the opening hours, ticket price, and accessible entrance.` Click **Analyze page** and expand **Jev** to inspect the real request and response.
+2. Open **Read**. Choose a display profile, move through the reading queue, and pan the Braille cells.
+3. Choose **Play alert demo**. A fictional station changes its elevator status through an actual DOM mutation. Jev evaluates the update. If it interrupts, **Resume reading** restores the saved position.
+4. For visual context, enter `https://brailly-jev.vercel.app/visual-demo.html`, use the same task, and choose **Open with visual context**. Open the map under **Visual details**, select **ElevenLabs**, and choose **Listen to visual detail**.
 
-Open `http://127.0.0.1:5173`. The key stays on the server.
+The museum and station are fictional. Their page changes are real DOM updates, which Jev evaluates live. The app shows service errors if a call fails.
 
-## What works
+## What Jev does
 
-Paste a public URL or open the museum example. Brailly imports sanitized HTML into an interactive iframe; links load the next page. For sites that require JavaScript or a login, the Chrome extension captures the page already rendered in your browser.
+Brailly sends the reader’s task and source text to Jev. Score rates each block’s relevance from 0 to 3; Choice labels it as content, action, navigation, notice, or extra. Expand the Jev panel to inspect the request, response, token usage, and model latency.
 
-Each Jev request includes the task and up to 60 DOM blocks. A [Score](https://docs.typesafe.ai/primitives/score) assigns relevance from 0 to 3; a [Choice](https://docs.typesafe.ai/primitives/advanced) labels each block. On iframe changes, another Choice decides whether to hold the current line, queue an update or interrupt. Resume restores the saved reading position. The interface shows the endpoint, model, latency and input/output token counts reported by Jev.
+For page changes, Jev compares the old and new content with the task and current reading position:
 
-The museum controls change its actual DOM. Jev decides what to do on every run; there are no replacement scores when the service fails. Browser tests use explicit mocks for repeatable checks, while live calls run separately.
+| Decision | Reader behavior |
+| --- | --- |
+| `DEFER` | Keeps the current line for unrelated changes or routine refresh noise. |
+| `QUEUE_HIGH` | Announces the update through ElevenLabs while keeping the Braille line and position. |
+| `INTERRUPT` | Shows the update, plays a short tone, and saves the previous reading position for resume. |
+| `NONE` | Retains the line when the change or its relevance is uncertain. |
 
-[Real-site verification](docs/REAL-SITES.md) covers rendered Achla travel prices, Dayton emergency wait widgets, controlled DOM changes and actual Jev calls. [Devin handoff](docs/DEVIN-PROMPT.md) records the requirements and regression cases.
+A request evaluates a batch of blocks. The queue updates when Jev returns that batch.
 
-## Optional visual context and ElevenLabs
+## Maps and voice
 
-Enable `VISUAL_ENRICHMENT_ENABLED=true` with `BROWSERBASE_API_KEY` to show **Open with visual context**. This creates a fresh remote capture: rendered source text and an inventory of images, SVG and canvas come from the same Browserbase session. Jev selects at most two candidates for Stagehand v4 vision and scores the resulting descriptions. **Visual details** identifies generated descriptions, recognized text, uncertainty and source alternative text separately. Opening a detail preserves the current source line and Braille position; results never speak automatically.
+A map can show an accessible route that its image label never describes. Browserbase opens the rendered page, and Jev selects visual candidates for inspection. Stagehand vision describes those candidates; Jev then scores the descriptions against the task. Jev itself accepts text only.
 
-Remote navigation is limited to the public demo origins in `server/browserbase.ts` plus the explicit HTTPS origins in `BROWSERBASE_ALLOWED_ORIGINS`. Third-party assets can be blocked by that policy. The endpoint has a 45-second work budget, at most 12 candidates, and closes its session on completion or cancellation. Partial results leave captured text readable. This is one capture, not a page monitor. It does not enrich extension snapshots or authenticated browser sessions. Visual coverage excludes CSS backgrounds, iframes, shadow DOM and animated visual content.
+Visual details keeps the generated description, recognized image text, and uncertainty separate from the original page text. You can open a detail without moving your source reading position. Select ElevenLabs or the browser voice and press Listen to hear it. Stop cancels loading or playback.
 
-For the reproducible museum scene, deploy `public/visual-demo.html` to an allowed public HTTPS host. Browserbase cannot open the development machine's localhost URL. `public/visual-only.html` covers pages with a diagram and no source text blocks. The existing **Museum demo** keeps its DOM mutation, interruption and resume workflow. See [the walkthrough](docs/DEMO.md) and [verification scope](docs/VERIFICATION.md) before presenting the integrations.
+After a complete visual capture, Browserbase checks again every 30 seconds while the reader stays open. Jev compares the previous and current text and visual observations. **Stop automatic checks** stops further captures; **Resume automatic checks** restarts them. Checks do not overlap. An incomplete capture keeps the current reading and retries later. Each capture uses paid services.
 
-Enable `ELEVENLABS_TTS_ENABLED=true` with `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID`, then select **ElevenLabs** under **Voice provider**. **Listen** reads the selected source block; a visual detail has separate Listen controls for the generated description and text recognized in the image. Stop works while audio is loading. A failure offers **Use browser voice**, and autoplay restrictions offer **Play audio**. The client waits for a bounded MP3 response before playback; it does not play progressively streamed chunks. No microphone or conversational agent is involved.
+**Update sounds** controls automatic voice alerts and the short tone. Voice alerts use ElevenLabs when configured. If the browser blocks playback, choose **Play audio** or **Play update sound**. A visible notice remains available.
 
-The flags default off independently. Both endpoints enforce their flags; keys and configured voice remain server-side. Configure provider/deployment usage quotas before exposing the paid endpoints publicly: per-process throttling is not a global serverless quota.
+For a visual change demo, capture `https://brailly-jev.vercel.app/visual-watch-demo.html` with the task `I am following the step-free entrance on this museum map. Tell me if the route changes.` The fictional map switches entrances every minute, including in separate browser sessions. The surrounding text stays unchanged. Jev decides what to do; the demo does not force its decision.
+
+Remote visual capture supports configured public HTTPS sites, with up to 12 candidates and two inspections per capture. It has a 45-second work budget and labels incomplete results. It takes fresh remote captures rather than reusing the extension’s signed-in session. CSS backgrounds, iframes, shadow DOM, and animated visuals fall outside its coverage.
 
 ## Chrome extension
 
-Download [brailly-extension.zip](https://brailly-jev.vercel.app/brailly-extension.zip), unzip it, then open `chrome://extensions`. Enable Developer mode and choose **Load unpacked**. Select the extracted folder, open a website and click Brailly's toolbar icon.
+Download the [extension ZIP](https://brailly-jev.vercel.app/brailly-extension.zip) and unzip it. In `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select the extracted folder.
 
-Click Brailly once to open its side panel. It captures and analyzes the current website automatically, follows the active tab and navigation, and sends updated snapshots as the page changes. Website permissions allow this across HTTP and HTTPS sites. Close the panel to stop following. Updates hold the reading line while Jev evaluates them; bursts share a pending request rather than repeatedly cancelling the active call.
+Open a website and click Brailly’s toolbar icon. While its side panel is open, the extension automatically analyzes the active page, follows navigation and tab changes, and detects DOM updates. Close the panel to stop following.
 
-Extraction excludes password fields and input values. The extension captures the main document and up to four supported visible child frames, including cross-origin frames covered by its website permissions. Closed shadow roots and browser-internal pages remain unavailable. The URL importer separately fetches bounded public HTML embeds, with source links. Use **Refresh source page** to fetch a new URL snapshot without losing your reading position. The extension is an unpacked build, not a Chrome Web Store release.
+Press **Alt + K** to find a captured button, link, or field. Select a result to read it, then press **Enter** on the Braille reading line to activate it. A field receives focus for typing on the original page. Disabled, stale, or removed controls are rejected. The web preview supports links and disclosure controls; use the extension for a website’s scripted buttons and fields. Try [the control demo](https://brailly-jev.vercel.app/controls-demo.html). Reload the extension after installing the updated ZIP.
 
-## Braille output
+The extension skips password fields and input values. It captures the main document and up to four supported visible child frames. Browser-internal pages and closed shadow roots are unavailable. We distribute an unpacked build; it isn't in the Chrome Web Store.
 
-Select a named display profile to preview its cell width. The controls pan the dots and move between source blocks. For an actual display, focus the reading output through a supported screen reader; VoiceOver or NVDA handles translation and hardware routing.
+## Braille devices
 
-No physical device was available for testing. The visual English dot mapping is illustrative, and the optional local BRLTTY adapter isn't wired into the current reader interface. See [hardware details](docs/HARDWARE.md).
+The simulator previews these refreshable Braille displays:
 
-## Checks and build
+| Model | Cells |
+| --- | ---: |
+| HumanWare Brailliant BI 20X | 20 |
+| HumanWare Brailliant BI 40X | 40 |
+| Freedom Scientific Focus 40 Blue | 40 |
+| Freedom Scientific Focus 80 Blue | 80 |
+
+We haven't tested physical hardware. The proposed connection uses VoiceOver or NVDA to translate the focused reading output and send it to a supported USB or Bluetooth display. Selecting a simulator profile changes its cell width; it does not connect a device.
+
+The on-screen English dots are illustrative. Our experimental BRLTTY adapter is separate from the current reader. See [hardware details](docs/HARDWARE.md).
+
+## Run locally
+
+Use Node.js 22.x, version 22.18 or newer.
+
+```sh
+npm ci
+cp .env.example .env
+```
+
+Set `TYPESAFE_API_KEY` in `.env`, then start the app:
+
+```sh
+npm run dev
+```
+
+Open `http://127.0.0.1:5173`.
+
+For visual context and ElevenLabs, also configure:
+
+```dotenv
+VISUAL_ENRICHMENT_ENABLED=true
+BROWSERBASE_API_KEY=your_browserbase_key
+BROWSERBASE_ALLOWED_ORIGINS=https://brailly-jev.vercel.app
+
+ELEVENLABS_TTS_ENABLED=true
+ELEVENLABS_API_KEY=your_elevenlabs_key
+ELEVENLABS_VOICE_ID=your_voice_id
+```
+
+Both integrations default off, and the server holds their keys. Browserbase needs a public HTTPS page to open remotely. See [.env.example](.env.example) for optional project and model settings.
+
+## Cost
+
+At Jev’s [published rate](https://docs.typesafe.ai/models) of US$0.042 per million input tokens, ten analyses of 30,000 tokens each cost US$0.0126. Output tokens are free at that rate.
+
+Actual usage depends on the page and every call it triggers, including visual selection and reanalysis. Browserbase, vision, and ElevenLabs cost extra.
+
+## Build and verify
 
 ```sh
 npm test
@@ -62,6 +115,8 @@ npm run test:e2e
 npm run build
 ```
 
-The build also packages the extension. `scripts/check-live.ts` checks a real Jev request with the server key. `npx tsx scripts/verify-elevenlabs.ts` performs an opt-in live TTS smoke test; `npx tsx scripts/verify-visual-real.ts fixture-jev` exercises Browserbase, Jev and vision on the controlled fixture. Results are recorded under `artifacts/`, separately from mocked regression tests. [Judging evidence](docs/JUDGING.md) separates verified behavior from work that still needs device testing.
+The build packages the extension. Regression tests mock provider responses; we run live provider checks separately. See [verification](docs/VERIFICATION.md), [real-site checks](docs/REAL-SITES.md), and [judging evidence](docs/JUDGING.md).
 
-The main implementation lives in `shared/dom.ts`, `server/dom-jev.ts`, `server/page.ts`, `src/App.tsx` and `extension/`. URL fetching rejects private network destinations; the preview strips source scripts and runs its capture bridge in a sandbox. Capture limits are 60 blocks and 800 characters per block, with truncation reported in the snapshot. A DOM snapshot isn't a browser accessibility tree.
+The app uses React, TypeScript, Vite, and Express on Vercel. Set production environment variables before deploying. [vercel.json](vercel.json) includes the Stagehand asset that Browserbase needs.
+
+Brailly captures up to 60 text blocks, with 800 characters per block. The importer strips source scripts and rejects private network destinations. Paid endpoints use per-process throttling; configure provider quotas to control usage across serverless instances.

@@ -1,6 +1,6 @@
 export type SpeechProvider = "browser" | "elevenlabs";
 /** Include snapshot/capture and task identity in id, not only a reusable DOM ID. */
-export type SpeechContent = { kind: "source" | "visual"; id: string };
+export type SpeechContent = { kind: "source" | "visual" | "alert"; id: string };
 export type SpeechState = {
   status: "idle" | "loading" | "playing" | "error";
   provider: SpeechProvider;

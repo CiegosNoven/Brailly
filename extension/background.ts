@@ -3,7 +3,7 @@ import type { PageSnapshot } from '../shared/dom';
 
 type FrameDescriptor = { url: string; context: string };
 type CapturedFrame = FrameDescriptor & { frameId: number; snapshot: PageSnapshot };
-type SourceSession = { tabId: number; windowId: number; url: string; token: string; revision: number; generation: number; main?: PageSnapshot; frames: Map<number, FrameDescriptor>; children: Map<number, CapturedFrame>; framePlan: string; frameGeneration: number; frameWarning?: string; publishTimer?: ReturnType<typeof setTimeout>; locations: Record<string, { url: string; originalId: string; frameId?: number }> };
+type SourceSession = { tabId: number; windowId: number; url: string; token: string; revision: number; generation: number; main?: PageSnapshot; published?: PageSnapshot; controlBusy?: boolean; frames: Map<number, FrameDescriptor>; children: Map<number, CapturedFrame>; framePlan: string; frameGeneration: number; frameWarning?: string; publishTimer?: ReturnType<typeof setTimeout>; locations: Record<string, { url: string; originalId: string; frameId?: number }> };
 const readers = new Set<chrome.runtime.Port>();
 let generation = 0;
 let source: SourceSession | null = null;
@@ -123,6 +123,7 @@ function publish(candidate: SourceSession) {
       if (!valid || !candidate.main) return;
       const merged = mergeFrameSnapshotsWithSources(candidate.main, [...candidate.children.values()]);
       candidate.locations = merged.sources;
+      candidate.published = merged.snapshot;
       await writeCurrent(candidate.generation, {
         snapshot: merged.snapshot, sourceTabId: candidate.tabId, sourceWindowId: candidate.windowId,
         sourceRevision: candidate.revision, captureStatus: 'ready', captureError: candidate.frameWarning || '', pageChanged: false,
@@ -195,6 +196,26 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   }
   const readerUrl = chrome.runtime.getURL('index.html');
   const fromReader = sender.id === chrome.runtime.id && sender.url?.split(/[?#]/)[0] === readerUrl;
+  if (message.type === 'activate-control' && fromReader) {
+    const candidate = source;
+    void (async () => {
+      if (!candidate || !await stillCurrent(candidate) || candidate.controlBusy || !candidate.published || message.snapshotId !== candidate.published.id)
+        return { ok: false, message: 'The source page changed. Select a control from the current capture.' };
+      const block = candidate.published.blocks.find(block => block.id === message.id);
+      const location = candidate.locations[message.id];
+      if (!block || !location) return { ok: false, message: 'This control is no longer in the captured page.' };
+      const original = (location.frameId ? candidate.children.get(location.frameId)?.snapshot : candidate.main)?.blocks.find(item => item.id === location.originalId);
+      if (!original) return { ok: false, message: 'This frame changed. Capture the page again.' };
+      candidate.controlBusy = true;
+      try {
+        return await chrome.tabs.sendMessage(candidate.tabId, {
+          type: 'operate-control', token: candidate.token, requestId: crypto.randomUUID(), url: location.url,
+          block: original,
+        }, { frameId: location.frameId || 0 });
+      } finally { candidate.controlBusy = false; }
+    })().then(respond).catch(() => respond({ ok: false, message: 'Could not reach the original control. Capture the page again.' }));
+    return true;
+  }
   if (message.type === 'capture' && fromReader) {
     followActive().then(ok => respond({ ok }));
     return true;

@@ -1,4 +1,5 @@
 import { extractDocument } from '../shared/dom';
+import { operateControl } from '../shared/page-controls';
 
 const scope = window as unknown as {
   __BRAILLY_EXTENSION_CAPTURE?: { token: string; url: string; revision: number; child?: boolean };
@@ -14,6 +15,19 @@ let lastContent = '';
 let stopped = false;
 const captureToken = scope.__BRAILLY_EXTENSION_CAPTURE?.token;
 let frameRevision = 0;
+const handledControls = new Set<string>();
+const controlMessage = (message: {type?: string; token?: string; url?: string; requestId?: string; block?: import('../shared/dom').DomBlock}, sender: chrome.runtime.MessageSender, respond: (value: unknown) => void) => {
+  if (message?.type !== 'operate-control' || sender.id !== chrome.runtime.id) return;
+  if (stopped || message.token !== captureToken || message.url !== location.href || !message.block || !message.requestId || handledControls.has(message.requestId)) {
+    respond({ ok: false, message: 'The source page changed. Capture it again before using this control.' });
+    return;
+  }
+  handledControls.add(message.requestId);
+  if (handledControls.size > 50) handledControls.delete(handledControls.values().next().value!);
+  respond(operateControl(document, location.href, message.block, 'live'));
+  schedule();
+};
+chrome.runtime.onMessage?.addListener(controlMessage);
 
 function visibleFrames() {
   if (window !== window.top) return [];
@@ -91,13 +105,14 @@ observer.observe(document.body || document.documentElement, {
   subtree: true,
   characterData: true,
   attributes: true,
-  attributeFilter: ['hidden', 'aria-hidden', 'aria-label', 'aria-labelledby', 'role', 'href', 'src', 'open', 'class', 'style'],
+  attributeFilter: ['hidden', 'aria-hidden', 'aria-label', 'aria-labelledby', 'aria-disabled', 'disabled', 'role', 'href', 'src', 'open', 'class', 'style'],
 });
 scope.__braillyLiveCapture = {
   stop() {
     stopped = true;
     clearTimers();
     observer.disconnect();
+    chrome.runtime.onMessage?.removeListener(controlMessage);
     document.removeEventListener('load', iframeLoaded, true);
   },
 };

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Brailly · changing access map</title>
+<style>body{margin:0;background:#faf8f7;color:#1f1422;font:20px/1.6 system-ui}main{max-width:850px;margin:auto;padding:40px 24px}h1{font-size:36px;line-height:1.15}svg{width:100%;height:auto;background:white;border:1px solid #766a78;border-radius:12px}a{color:#a3155f}small{font-size:16px}</style></head>
+<body><main><h1>A map that changes while you read</h1>
+<p>This is a fictional museum. The access map switches every minute. Its labels change inside the image; this paragraph stays the same.</p>
+<p>Follow the step-free route marked on the map. Brailly checks the rendered image and asks Jev whether the new information should interrupt your reading or be announced by voice.</p>
+<svg role="img" aria-label="Museum access map" viewBox="0 0 850 520" xmlns="http://www.w3.org/2000/svg">
+<rect x="285" y="125" width="280" height="260" rx="10" fill="#f7eef4" stroke="#5f5560" stroke-width="3"/>
+<text x="425" y="230" text-anchor="middle" font-family="sans-serif" font-size="30" fill="#1f1422">MUSEUM</text>
+<text x="425" y="65" text-anchor="middle" font-family="sans-serif" font-size="27" fill="#1f1422">STEP-FREE ACCESS</text>
+<path id="route" d="M755 425 V300 H565" fill="none" stroke="#176536" stroke-width="14"/>
+<text id="east" x="600" y="145" font-family="sans-serif" font-size="23" fill="#176536">EAST: OPEN</text>
+<text id="west" x="30" y="145" font-family="sans-serif" font-size="23" fill="#5f5560">WEST: CLOSED</text>
+<text id="instruction" x="425" y="485" text-anchor="middle" font-family="sans-serif" font-size="25" fill="#1f1422">USE THE EAST ENTRANCE</text>
+</svg>
+<p><small>The same timed state appears in separate browser sessions. Browserbase can see the change on its next capture. This is a demonstration, not travel advice.</small></p>
+<p><a href="/">Open Brailly</a></p>
+</main><script>
+function updateMap(){const eastOpen=Math.floor(Date.now()/60000)%2===0;document.getElementById('east').textContent=eastOpen?'EAST: OPEN':'EAST: CLOSED';document.getElementById('west').textContent=eastOpen?'WEST: CLOSED':'WEST: OPEN';document.getElementById('route').setAttribute('d',eastOpen?'M755 425 V300 H565':'M95 425 V300 H285');document.getElementById('instruction').textContent=eastOpen?'USE THE EAST ENTRANCE':'EAST CLOSED. USE WEST ENTRANCE';document.getElementById('east').setAttribute('fill',eastOpen?'#176536':'#a3155f');document.getElementById('west').setAttribute('fill',eastOpen?'#5f5560':'#176536');}updateMap();setInterval(updateMap,1000);
+</script></body></html>

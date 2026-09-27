@@ -1,5 +1,6 @@
 import { extractDocument } from "./dom";
 import { snapshotSignature } from "./live";
+import { operateControl } from './page-controls';
 const config = (
   window as unknown as { __BRAILLY: { token: string; url: string } }
 ).__BRAILLY;
@@ -106,6 +107,11 @@ document.addEventListener("click", (event) => {
 window.addEventListener("message", (event) => {
   if (event.source !== parent || event.data?.token !== config.token) return;
   const m = event.data;
+  if (m.type === 'activate-control' && typeof m.requestId === 'string') {
+    const result = operateControl(document, config.url, m.block, 'preview');
+    send('control-result', { requestId: m.requestId, result });
+    return;
+  }
   if (m.type === "highlight") {
     highlight(m.id);
     return;
@@ -166,6 +172,7 @@ const start = () => {
       "role",
       "aria-disabled",
       "disabled",
+      "open",
       "class",
       "style",
     ],

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Brailly control demo</title>
+  <style>
+    body{max-width:720px;margin:auto;padding:32px 24px;font:20px/1.6 system-ui,sans-serif;color:#1f1422;background:#faf8f7}h1{font-size:36px;line-height:1.2}button,input,summary{font:inherit;min-height:44px}button,input{padding:12px;margin-block:12px;border:1px solid #5f5560;border-radius:6px;background:white;color:inherit}button,summary{cursor:pointer}label{display:block}button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid #a3155f;outline-offset:4px}button:disabled{opacity:.6}input{max-width:100%;box-sizing:border-box}
+  </style>
+</head>
+<body><main>
+  <h1>Use a page control from Brailly</h1>
+  <p>Open the Brailly extension, press Alt + K, and find Show access information. Select it, then press Enter on the reading line.</p>
+  <button id="access" type="button" aria-expanded="false" aria-controls="route">Show access information</button>
+  <p id="route" hidden>Use the east entrance through the Garden Lane ramp. This is a fictional route for the demonstration.</p>
+  <p id="feedback" role="status">The access information is closed.</p>
+  <details><summary>Visitor information</summary><p>The demonstration gallery opens at 10 am.</p></details>
+  <label for="visitor">Visitor name</label><input id="visitor" autocomplete="off">
+  <button type="button" disabled>Unavailable action</button>
+  <p><a href="/example.html">Open the museum demo</a></p>
+</main>
+<script>
+document.getElementById('access').addEventListener('click', () => {
+  const route = document.getElementById('route');
+  route.hidden = !route.hidden;
+  document.getElementById('access').setAttribute('aria-expanded', String(!route.hidden));
+  document.getElementById('feedback').textContent = route.hidden ? 'The access information is closed.' : 'The access information is open.';
+});
+</script>
+</body></html>
